@@ -44,6 +44,23 @@ def commonConfiguration(offset=18):
             LaserSector('back_center_right', 36*6 - offset, 36*7 - offset, back=True),
             LaserSector('back_outer_right', 36*7 - offset, 36*8 - offset, back=True))
 
+def avoidingConfiguration(offset=18):
+    """
+    front: 18º 71º 2º 71º 18º
+    back: 18º 71º 2º 71º 18º
+    """
+    return LaserSectors(
+            LaserSector('front_outer_right', -90, -90 + 36, front=True),
+            LaserSector('front_center_right', -54, -54 + 53, front=True),
+            LaserSector('front_center', -1, -1 + 2, front=True),
+            LaserSector('front_center_left', 1, 1 + 53, front=True),
+            LaserSector('front_outer_left', 54, 54 + 36, front=True),
+            LaserSector('back_outer_left', 90, 90 + 36, back=True),
+            LaserSector('back_center_left', 126, 126 + 53, back=True),
+            LaserSector('back_center', 179, 179 + 2, back=True),
+            LaserSector('back_center_right', 181, 181 + 53, back=True),
+            LaserSector('back_outer_right', 234, 234 + 36, back=True))
+
 ## LASER ##
 
 class Laser(object):
