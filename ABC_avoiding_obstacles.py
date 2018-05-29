@@ -22,7 +22,7 @@ k_front_outer_left = 1 * MOVING_DIST / 16
 def info_laser():
     if exhaustive:
         laser.show(empties=True)
-    laser.summary()
+    laser.summary(empties=True)
 
 def get_avoiding_distances():
     dL = iniLW - (k_front_outer_right*laser.front_outer_right.proximity_percent() + k_front_center_right*laser.front_center_right.proximity_percent() + k_front_center*laser.front_center.proximity_percent())
@@ -38,18 +38,19 @@ def avoid_obstacles_with_original_direction(): # 1,5 punts esquivar objecte mant
     dL, dR = get_avoiding_distances()
     if dL == iniLW and dR == iniRW: # there are no obstacles
         # fix orientation
-        orientate = neato.set_alfa(alfaIni, limit=5)
+        orientate = neato.set_alfa(alfaIni, limit=20)
         if orientate:
             debug("Rotated to initial alfa")
         # fix direction
         yOffset = yIni - neato.odometry.y
         if not is_zero(yOffset, limit=50):
+            debug("OFFSET Y %.2f" % yOffset)
             if yOffset > 0:
                 dR = dR + yOffset
             else:
-                dL = dL + yOffset
+                dL = dL - yOffset
     neato.set_motors(left=dL, right=dR)
-    neato.show_odometry()
+    neato.update_odometry()
 
 def follow_wall():
     meeting_distances_config()
@@ -62,11 +63,18 @@ def meet_object():
 
 def meet_object_v2():
     meeting_distances_config()
-    near = laser.nearest()
-    neato.orientate(laser, near)
+    near = laser.nearest(average=False)
+    debug("Nearest: " + near.tag)
+    debug("Alfa: %.2f" % near.alfa)
+    #neato.set_alfa(near.alfa, limit=5)
+    if not is_zero(near.dist + Laser.OFFSET):
+    	pass
+        #self.move_forwards(dist)
+    neato.update_odometry()
+    neato.sleep(2)
 
 def meeting_distances_config():
-    LaserRay.DIST_LIMIT = 500
+    LaserRay.DIST_LIMIT = 4000
     iniLW = LaserRay.DIST_LIMIT
     iniRW = LaserRay.DIST_LIMIT
 
@@ -79,7 +87,9 @@ if __name__ == "__main__":
     alfaIni = neato.alfa()
     yIni = neato.odometry.y
     debug("Alfa INI: %.2f" % alfaIni)
-    debug("y INI: %.2f", % yIni)
+    debug("y INI: %.2f" % yIni)
+
+    neato.sleep(2)
 
     def run_with_laser(f, laser_conf):
         def execute():
@@ -91,4 +101,4 @@ if __name__ == "__main__":
 
     #loop(info, interval=3) # display info every 3 seconds (in addition to other calls)
 
-    neato.run(run_with_laser(meet_object_v2, commonConfiguration))
+    neato.run(run_with_laser(avoid_obstacles_with_original_direction, avoidingConfiguration))

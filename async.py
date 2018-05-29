@@ -3,6 +3,7 @@ from threading import Event, Thread, Timer
 def run(block, delay=0, *args):
     """ Run `block` with `args` after `delay` seconds, non-blocking """
     t = Timer(delay, lambda: block(*args))
+    t.daemon = True
     t.start()
     return t
 

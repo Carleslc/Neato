@@ -78,6 +78,8 @@ class NeatoMock(object):
             debug('Finished Movement')
             if self.is_mocked():
                 self.stop(reset_motors=False)
+            elif hasattr(self, '_resetLR_timer'):
+                self._resetLR_timer.cancel()
         self._resetLR_timer = run(resetLR, delay=max(self.time_to_complete() - delay, 0))
 
     def stop(self, reset_motors=True):
@@ -139,7 +141,7 @@ class NeatoMock(object):
     def orientate(self, laser, sector, limit=5):
         info("Orientate to %s" % sector.tag)
         self.set_alfa(sector.center(), limit)
-        dist = laser[sector.tag]
+        dist = laser[sector.tag].original_dist
         if not is_zero(dist):
             self.move_forwards(dist)
 

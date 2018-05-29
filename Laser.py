@@ -2,6 +2,7 @@
 
 import neato
 import numpy as np
+from log import info, debug
 from utils import abs_alfa, for_each, print_each, separator
 from collections import OrderedDict as odict
 
@@ -127,19 +128,19 @@ class Laser(object):
         larger_sectors = map(lambda ray: ray.sector.degrees(), match_rays)
         return match_rays[larger_sectors.index(max(larger_sectors))]
 
-    def summary(self):
+    def summary(self, empties=False):
         """ Print mean rays for every non-empty valid sector, including front and back averages """
-        print(separator())
-        print_each(self.rays())
-        print(self.front_average())
-        print(self.back_average())
+        info(separator())
+        print_each(self.rays(empties))
+        info(self.front_average())
+        info(self.back_average())
 
     def show(self, tag='', empties=True):
         """
         Print all rays for every angle and sector tag (leave to default for all sectors).
         If `empties` is False then only non-empty rays are shown.
         """
-        print(separator())
+        info(separator())
         def print_sector(tag):
             print_each(self.filter(lambda ray: empties or not ray.is_empty(), tag))
         if tag != '':
