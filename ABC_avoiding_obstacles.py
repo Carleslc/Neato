@@ -24,26 +24,32 @@ def info_laser():
         laser.show(empties=True)
     laser.summary()
 
-def esquivar_obstacles():
-    dL, dR = get_avoiding_distances()
-    neato.set_motors(left=dL, right=dR)
-
 def get_avoiding_distances():
     dL = iniLW - (k_front_outer_right*laser.front_outer_right.proximity_percent() + k_front_center_right*laser.front_center_right.proximity_percent() + k_front_center*laser.front_center.proximity_percent())
     dR = iniRW - (k_front_outer_left*laser.front_outer_left.proximity_percent() + k_front_center_left*laser.front_center_left.proximity_percent() + k_front_center*laser.front_center.proximity_percent()/2)
     return dL, dR
 
-def esquivar_obstacles_pero_tornant_a_l_angle_original():
-    #1,5 punts esquivar objecte mantenint direccio, 2punts si manté la mateixa linia
-    global alfaIni
-    orientate = False
+def avoid_obstacles():
     dL, dR = get_avoiding_distances()
-    if dL == iniLW and dR == iniRW:
-        orientate = neato.set_alfa(alfaIni, limit=5)
-        debug("Rotated to initial alfa")
     neato.set_motors(left=dL, right=dR)
-    neato.update_odometry()
-    info("Alfa: %.2f" % neato.alfa())
+
+def avoid_obstacles_with_original_direction(): # 1,5 punts esquivar objecte mantenint direccio, 2 punts si manté la mateixa linia
+    global alfaIni, yIni
+    dL, dR = get_avoiding_distances()
+    if dL == iniLW and dR == iniRW: # there are no obstacles
+        # fix orientation
+        orientate = neato.set_alfa(alfaIni, limit=5)
+        if orientate:
+            debug("Rotated to initial alfa")
+        # fix direction
+        yOffset = yIni - neato.odometry.y
+        if not is_zero(yOffset, limit=50):
+            if yOffset > 0:
+                dR = dR + yOffset
+            else:
+                dL = dL + yOffset
+    neato.set_motors(left=dL, right=dR)
+    neato.show_odometry()
 
 def follow_wall():
     meeting_distances_config()
@@ -67,11 +73,13 @@ def meeting_distances_config():
 if __name__ == "__main__":
     log_level(DEBUG)
 
-    global neato, alfaIni
+    global neato, alfaIni, yIni
     neato = Neato(speed=100, laser=True)
 
     alfaIni = neato.alfa()
+    yIni = neato.odometry.y
     debug("Alfa INI: %.2f" % alfaIni)
+    debug("y INI: %.2f", % yIni)
 
     def run_with_laser(f, laser_conf):
         def execute():
