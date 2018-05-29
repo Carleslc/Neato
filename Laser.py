@@ -110,15 +110,22 @@ class Laser(object):
 
     def farthest(self, average=True):
         """ Get the ray with farthest distance, either for average rays or for all rays """
+        return self.__ray_by_dist(max, average)
+
+    def nearest(self, average=True):
+        """ Get the ray with nearest distance, either for average rays or for all rays """
+        return self.__ray_by_dist(min, average)
+
+    def __ray_by_dist(self, dist_f, average=True):
         rays = self.rays(empties=True) if average else self.all()
         distances = np.array(map(lambda ray: ray.dist, rays))
-        max_dist = max(distances)
-        matches_indices = np.where(distances == max_dist)[0]
-        far_rays = [rays[i] for i in matches_indices]
-        if len(far_rays) == 1:
-            return far_rays[0]
-        larger_sectors = map(lambda ray: ray.sector.degrees(), far_rays)
-        return far_rays[larger_sectors.index(max(larger_sectors))]
+        match_dist = dist_f(distances)
+        matches_indices = np.where(distances == match_dist)[0]
+        match_rays = [rays[i] for i in matches_indices]
+        if len(match_rays) == 1:
+            return match_rays[0]
+        larger_sectors = map(lambda ray: ray.sector.degrees(), match_rays)
+        return match_rays[larger_sectors.index(max(larger_sectors))]
 
     def summary(self):
         """ Print mean rays for every non-empty valid sector, including front and back averages """

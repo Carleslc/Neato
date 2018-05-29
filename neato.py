@@ -136,10 +136,12 @@ class NeatoMock(object):
         for move in moves:
             move.apply(self)
 
-    def orientate(self, laser, sector):
+    def orientate(self, laser, sector, limit=5):
         info("Orientate to %s" % sector.tag)
-        self.rotate_right(sector.center())
-        self.move_forwards(laser[sector.tag].proximity())
+        self.set_alfa(sector.center(), limit)
+        dist = laser[sector.tag]
+        if not is_zero(dist):
+            self.move_forwards(dist)
 
     def offset_from(self, alfa):
         return abs_alfa(self.alfa() - abs_alfa(alfa))
