@@ -8,7 +8,7 @@ import serial as serial_port
 from log import *
 from Laser import *
 from async import run
-from utils import mod, sign, is_zero, abs_alfa
+from utils import mod, sign, is_zero, abs_alfa, medianOfThree
 from Odometry import Odometry
 from math import sin, cos, atan, pi, sqrt, degrees, radians
 
@@ -155,7 +155,7 @@ class NeatoMock(object):
 
     def set_alfa(self, alfa, limit=0.001):
         alfa = -self.offset_from(alfa)
-        debug("Alfa: %.2f" % alfa)
+        debug("set_alfa's Alfa: %.2f" % alfa)
         return self.rotate(alfa, optimize=True, limit=limit)
 
     def alfa(self):
@@ -352,6 +352,70 @@ class SecurePose(Movement):
         self.secure_pose.apply(neato)
         original_speed = neato.saved_speed
         neato.saved_speed = (1 - self.v)*neato.saved_speed
+
+        laser = neato.get_laser(commonConfiguration)
+
+        a = laser.front_outer_left
+        b = laser.front_center_left
+        c = laser.front_center
+        d = laser.front_center_right
+        e = laser.front_outer_right
+
+        f = laser.back_outer_right
+        g = laser.back_center_right
+        h = laser.back_center
+        i = laser.back_center_left
+        j = laser.back_outer_left
+
+        nearest = laser.nearest()
+        debug("Nearest sector: " + nearest.tag)
+        if a == nearest:
+            a = j
+        elif b == nearest:
+            b = j
+        elif c == nearest:
+            c = j
+        elif d == nearest:
+            d = j
+        elif e == nearest:
+            e = j
+        elif f == nearest:
+            f = j
+        elif g == nearest:
+            g = j
+        elif h == nearest:
+            h = j
+        elif i == nearest:
+            i = j
+
+
+
+        nearestmin = min(a.original_dist,b.original_dist,c.original_dist,d.original_dist,e.original_dist,f.original_dist,g.original_dist,h.original_dist,i.original_dist)
+
+        if a.original_dist == nearestmin:
+            nearest2nd = a
+        elif b.original_dist == nearestmin:
+            nearest2nd = b
+        elif c.original_dist == nearestmin:
+            nearest2nd = c
+        elif d.original_dist == nearestmin:
+            nearest2nd = d
+        elif e.original_dist == nearestmin:
+            nearest2nd = e
+        elif f.original_dist == nearestmin:
+            nearest2nd = f
+        elif g.original_dist == nearestmin:
+            nearest2nd = g
+        elif h.original_dist == nearestmin:
+            nearest2nd = h
+        elif i.original_dist == nearestmin:
+            nearest2nd = i
+        else:
+            nearest2nd = j
+
+        debug("Second nearest sector: " + nearest2nd.tag)
+
+
         neato.move_backwards(self.k)
         neato.saved_speed = original_speed
 

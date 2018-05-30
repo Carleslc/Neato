@@ -25,10 +25,10 @@ class Odometry(object):
         self.Pk1 = np.zeros([3,3])
 
     def update(self, L, R, speed):
-        debug("Current (L, R) = (%i, %i)" % (L, R))
+        #debug("Current (L, R) = (%i, %i)" % (L, R))
         self.diffL = L - self.L
         self.diffR = R - self.R
-        debug("Desplaçament (L,R) = (%i, %i)" % (self.diffL, self.diffR))
+        #debug("Desplaçament (L,R) = (%i, %i)" % (self.diffL, self.diffR))
         self.L = L
         self.R = R
         self.speed = speed
@@ -79,15 +79,15 @@ class Odometry(object):
         header = "###### ODOMETRY%s ######" % (' ' + self.step if self.step != '' else '')
         s = s + header
         s = s + "\n(x, y) = (%i, %i)" % (self.x, self.y)
-        s = s + "\n(L, R) = (%i, %i)" % (self.L, self.R)
-        s = s + "\nSpeed = %i" % self.speed
+        #s = s + "\n(L, R) = (%i, %i)" % (self.L, self.R)
+        #s = s + "\nSpeed = %i" % self.speed
         s = s + "\nSuma Theta = %.2f" % degrees(self.suma_theta)
-        s = s + "\nTheta Dot = %.2f" % degrees(self.theta_dot)
-        s = s + "\nDelta D = %.2f" % self.delta_d
-        s = s + "\nDelta Theta = %.2f" % degrees(self.delta_th)
-        s = s + "\nNoise Area\n%s" % self.Pk1
-        x_est, y_est, delta_th_est = self.estimation_pose()
-        s = s + "\n(x, y) estimated = (%i, %i)" % (x_est, y_est)
-        s = s + "\nDelta Theta estimated = %.2f\n" % degrees(delta_th_est)
+        #s = s + "\nTheta Dot = %.2f" % degrees(self.theta_dot)
+        #s = s + "\nDelta D = %.2f" % self.delta_d
+        #s = s + "\nDelta Theta = %.2f" % degrees(self.delta_th)
+        #s = s + "\nNoise Area\n%s" % self.Pk1
+        #x_est, y_est, delta_th_est = self.estimation_pose()
+        #s = s + "\n(x, y) estimated = (%i, %i)" % (x_est, y_est)
+        #s = s + "\nDelta Theta estimated = %.2f\n" % degrees(delta_th_est)
         s = s + '#' * len(header)
         return s
