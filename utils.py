@@ -25,3 +25,6 @@ def separator():
 
 def is_zero(x, limit=0.001):
     return abs(x) < limit
+
+def medianOfThree(a, b, c):
+    return a + b + c - min(a, b, c) - max(a, b, c)

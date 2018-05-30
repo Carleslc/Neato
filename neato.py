@@ -99,7 +99,7 @@ class NeatoMock(object):
     def is_stopped(self):
         return self.get_speed() == 0
 
-    def rotation_motors(self, alfa, optimize=True):
+    def rotation_motors(self, alfa, optimize=True, limit=0.001):
         s = sign(alfa) # 1: left (default), -1: right
         if alfa < 0:
             alfa = -alfa
@@ -108,22 +108,27 @@ class NeatoMock(object):
             if alfa > 180:
                 alfa = 360 - alfa
                 s = -s
+        if is_zero(alfa, limit):
+            return 0, 0
         info("Rotate %.2fº %s" % (alfa, 'LEFT' if s == 1 else 'RIGHT'))
         turn_dist = radians(alfa)*Neato.S
         return -s*turn_dist, s*turn_dist
 
-    def rotate(self, alfa, optimize=True):
-        L, R = self.rotation_motors(alfa, optimize)
-        self.set_motors(L, R)
-        self.sleep(abs(L)/self.saved_speed)
-        debug("Sleep time: %i" % (abs(L)/self.saved_speed))
-        self.show_odometry("AFTER ROTATION")
+    def rotate(self, alfa, optimize=True, limit=0.001):
+        L, R = self.rotation_motors(alfa, optimize, limit)
+        rotate = abs(L) > 0 and abs(R) > 0
+        if rotate:
+            self.set_motors(L, R)
+            self.sleep(abs(L)/self.saved_speed)
+            debug("Sleep time: %i" % (abs(L)/self.saved_speed))
+            self.show_odometry("AFTER ROTATION")
+        return rotate
 
-    def rotate_left(self, alfa, optimize=True):
-        self.rotate(alfa, optimize)
+    def rotate_left(self, alfa, optimize=True, limit=0.001):
+        return self.rotate(alfa, optimize, limit)
 
-    def rotate_right(self, alfa, optimize=True):
-        self.rotate(-alfa, optimize)
+    def rotate_right(self, alfa, optimize=True, limit=0.001):
+        return self.rotate(-alfa, optimize, limit)
 
     def move_forwards(self, d):
         info("Move %.2f mm" % d)
@@ -151,13 +156,14 @@ class NeatoMock(object):
     def set_alfa(self, alfa, limit=0.001):
         alfa = -self.offset_from(alfa)
         debug("Alfa: %.2f" % alfa)
-        rotate = not is_zero(alfa, limit)
-        if rotate:
-            self.rotate(alfa, optimize=True)
-        return rotate
+        return self.rotate(alfa, optimize=True, limit=limit)
 
     def alfa(self):
         return degrees(self.odometry.suma_theta)
+
+    def alfa_optimized(self):
+        alfa = self.alfa()
+        return alfa if alfa <= 180 else 360 - alfa
 
     def show_odometry(self, msg=''):
         self.update_odometry()
