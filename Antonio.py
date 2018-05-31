@@ -10,7 +10,7 @@ tiempo = 20
 FORWARDS = 0
 BACKWARDS = 1
 
-go_to_charge = SecurePose(x=0, y=0, alfa=0, k=1000)
+go_to_charge = SecurePose(x=0, y=0, alfa=0, k=700)
 go_to_zero = Pose(x=0, y=0, alfa=0)
 
 direccion = FORWARDS
@@ -18,7 +18,8 @@ direccion = FORWARDS
 def move_with_key(tecla):
     global direccion
     debug("Key: " + tecla)
-    neato.show_odometry("BEFORE KEY")
+    #neato.show_odometry("BEFORE KEY")
+    neato.update_odometry() #this update is needed!
 
     speed = neato.odometry.speed
 
@@ -68,17 +69,18 @@ def move_with_key(tecla):
 
     if tecla == '8' or tecla == '2' or tecla == '6' or tecla == '4' or tecla == '5':
         if direccion == FORWARDS:
-            debug("Direction: fordward")
+            debug("Direction: forward")
         else:
             debug("Direction: backward")
 
-    debug("After key")
+    #debug("After key")
     neato.show_odometry("AFTER KEY")
     info('\n')
 
 if __name__ == "__main__":
     global neato
     log_level(DEBUG)
-    neato = Neato(speed=150)
+    neato = Neato(speed=150, laser=True)
+    neato.sleep(3)
     #neato.move(Manhattan(charging_station_x, charging_station_y), EuclideToPosition(0, 0))
     neato.run_until_key('q', move_with_key)

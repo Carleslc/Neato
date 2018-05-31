@@ -10,7 +10,7 @@ from Laser import *
 from async import run
 from utils import mod, sign, is_zero, abs_alfa, medianOfThree
 from Odometry import Odometry
-from math import sin, cos, atan, pi, sqrt, degrees, radians
+from math import sin, cos, atan, pi, sqrt, degrees, radians, atan2
 
 GO_SUPER_FAST = 0
 
@@ -75,7 +75,7 @@ class NeatoMock(object):
         self._start_motors = time.time() + delay
         self.send('SetMotor LWheelDist %i RWheelDist %i Speed %i' % (left, right, speed), delay=delay)
         def resetLR():
-            debug('Finished Movement')
+            #debug('Finished Movement')
             if self.is_mocked():
                 self.stop(reset_motors=False)
             elif hasattr(self, '_resetLR_timer'):
@@ -120,8 +120,8 @@ class NeatoMock(object):
         if rotate:
             self.set_motors(L, R)
             self.sleep(abs(L)/self.saved_speed)
-            debug("Sleep time: %i" % (abs(L)/self.saved_speed))
-            self.show_odometry("AFTER ROTATION")
+            #debug("Sleep time: %i" % (abs(L)/self.saved_speed))
+            #self.show_odometry("AFTER ROTATION")
         return rotate
 
     def rotate_left(self, alfa, optimize=True, limit=0.001):
@@ -134,9 +134,10 @@ class NeatoMock(object):
         info("Move %.2f mm" % d)
         self.set_motors(d, d)
         self.sleep(abs(d)/self.saved_speed)
-        self.show_odometry("AFTER MOVE")
+        #self.show_odometry("AFTER MOVE")
 
     def move_backwards(self, d):
+        self.rotate(180)
         self.move_forwards(-d)
 
     def move(self, *moves):
@@ -177,7 +178,7 @@ class NeatoMock(object):
         self.odometry.update(L, R, self.get_speed())
         self._accL = self._accL + self.odometry.diffL
         self._accR = self._accR + self.odometry.diffR
-        debug("(AccL, AccR) = (%i, %i)" % (self._accL, self._accR))
+        #debug("(AccL, AccR) = (%i, %i)" % (self._accL, self._accR))
         self._updating = False
 
     def beep(self, sound=1):
@@ -315,7 +316,7 @@ class EuclideToPosition(Movement):
         y = self.y - neato.odometry.y
         if not is_zero(x):
             alfa = degrees(atan(x/y))
-            debug("Atan %.2f" % alfa)
+            #debug("Atan %.2f" % alfa)
             alfa = sign(alfa)*(90 - abs(alfa))
         if not is_zero(x) and x < 0: # backwards
             alfa = alfa + 180.0 # set forwards
@@ -353,70 +354,112 @@ class SecurePose(Movement):
         original_speed = neato.saved_speed
         neato.saved_speed = (1 - self.v)*neato.saved_speed
 
+        #neato.enable_laser(True)
+
         laser = neato.get_laser(commonConfiguration)
 
-        a = laser.front_outer_left
-        b = laser.front_center_left
-        c = laser.front_center
-        d = laser.front_center_right
-        e = laser.front_outer_right
+        laser.summary(empties=True)
 
-        f = laser.back_outer_right
-        g = laser.back_center_right
-        h = laser.back_center
-        i = laser.back_center_left
-        j = laser.back_outer_left
+        laser_vec = np.array([laser.front_outer_left,laser.front_center_left,laser.front_center,laser.front_center_right,laser.front_outer_right,
+            laser.back_outer_right,laser.back_center_right,laser.back_center,laser.back_center_left,laser.back_outer_left])
+        laser_vec2 = np.array([laser.front_outer_left,laser.front_center_left,laser.front_center,laser.front_center_right,laser.front_outer_right,
+            laser.back_outer_right,laser.back_center_right,laser.back_center,laser.back_center_left,laser.back_outer_left])
+        """
+        0 = laser.front_outer_left
+        1 = laser.front_center_left
+        2 = laser.front_center
+        3 = laser.front_center_right
+        4 = laser.front_outer_right
 
-        nearest = laser.nearest()
+        5 = laser.back_outer_right
+        6 = laser.back_center_right
+        7 = laser.back_center
+        8 = laser.back_center_left
+        9 = laser.back_outer_left
+        """
+        nearest_val = 500000
+        nearest = laser.front_center
+        nearest2nd_val = 500000
+        nearest2nd = laser.front_center
+        for j in range(0,10):
+            if laser_vec[j].original_dist != 0 and laser_vec[j].original_dist < nearest_val:
+                #debug("laser_vec[%i]: %i - " % (j,laser_vec[j].original_dist) + laser_vec[j].tag)
+                nearest_val = laser_vec[j].original_dist
+                nearest = laser_vec[j]
+        for j in range(0,10):
+            alpha = laser_vec[j].alfa;
+            if laser_vec[j].alfa < 0:
+                alpha = laser_vec[j].alfa + 360            
+            if laser_vec[j].original_dist != 0 and laser_vec[j] != nearest and not is_zero(abs(alpha - nearest.alfa),limit=60) and laser_vec[j].original_dist < nearest2nd_val:
+                nearest2nd_val = laser_vec[j].original_dist
+                nearest2nd = laser_vec[j]
+
         debug("Nearest sector: " + nearest.tag)
-        if a == nearest:
-            a = j
-        elif b == nearest:
-            b = j
-        elif c == nearest:
-            c = j
-        elif d == nearest:
-            d = j
-        elif e == nearest:
-            e = j
-        elif f == nearest:
-            f = j
-        elif g == nearest:
-            g = j
-        elif h == nearest:
-            h = j
-        elif i == nearest:
-            i = j
-
-
-
-        nearestmin = min(a.original_dist,b.original_dist,c.original_dist,d.original_dist,e.original_dist,f.original_dist,g.original_dist,h.original_dist,i.original_dist)
-
-        if a.original_dist == nearestmin:
-            nearest2nd = a
-        elif b.original_dist == nearestmin:
-            nearest2nd = b
-        elif c.original_dist == nearestmin:
-            nearest2nd = c
-        elif d.original_dist == nearestmin:
-            nearest2nd = d
-        elif e.original_dist == nearestmin:
-            nearest2nd = e
-        elif f.original_dist == nearestmin:
-            nearest2nd = f
-        elif g.original_dist == nearestmin:
-            nearest2nd = g
-        elif h.original_dist == nearestmin:
-            nearest2nd = h
-        elif i.original_dist == nearestmin:
-            nearest2nd = i
-        else:
-            nearest2nd = j
-
         debug("Second nearest sector: " + nearest2nd.tag)
 
+        """
+        distances = np.array(map(lambda ray: ray.original_dist, nearest.rays))
+        match_dist = min(distances)
+        matches_indices = np.where(distances == match_dist)[0]
+        match_rays = [nearest.rays[i] for i in matches_indices]
+        if len(match_rays) == 1:
+                alfa1 = match_rays[0]
+        larger_sectors = map(lambda ray: ray.sector.degrees(), match_rays)
+        alfa1 = match_rays[larger_sectors.index(max(larger_sectors))]
+        """
 
-        neato.move_backwards(self.k)
+        def wanted_ray_alfa(rays, dist_f):
+            distances = np.array(map(lambda ray: ray.dist, rays))
+            match_dist = dist_f(distances)
+            matches_indices = np.where(distances == match_dist)[0]
+            match_rays = [rays[i] for i in matches_indices]
+            if len(match_rays) == 1:
+                return match_rays[0].alfa
+            larger_sectors = map(lambda ray: ray.sector.degrees(), match_rays)
+            return match_rays[larger_sectors.index(max(larger_sectors))].alfa
+
+        alfa1 = wanted_ray_alfa(nearest.sector.rays(),min)
+        alfa2 = wanted_ray_alfa(nearest2nd.sector.rays(),min)
+
+        #alfa1 = nearest.alfa
+        #alfa2 = nearest2nd.alfa
+        debug("alfa1: %i, alfa2 %i" % (alfa1,alfa2))
+        if alfa1 < 0:
+            alfa1 = alfa1 + 360
+        if alfa2 < 0:
+            alfa2 = alfa2 + 360
+        #alfa = (alfa1 + alfa2) / 2
+        alfa = degrees(atan2((sin(radians(alfa1))+sin(radians(alfa2)))/2,(cos(radians(alfa1))+cos(radians(alfa2)))/2))
+        debug("canviats de signe alfa1: %i, alfa2 %i i alfa mig resultant en degrees: %i" % (alfa1,alfa2,alfa))
+
+        neato.sleep(2)
+
+        neato.rotate(alfa + 180)
+
+        LaserRay.DIST_LIMIT = 100
+
+        iniLW = LaserRay.DIST_LIMIT
+        iniRW = LaserRay.DIST_LIMIT
+
+        MOVING_DIST = LaserRay.DIST_LIMIT
+
+        k_front_outer_right = 1 * MOVING_DIST / 16
+        k_front_center_right = 1 * MOVING_DIST / 2
+        k_front_center = 2 * MOVING_DIST / 3
+        k_front_center_left = 1 * MOVING_DIST / 2
+        k_front_outer_left = 1 * MOVING_DIST / 16
+
+        for i in range(1,40):
+            #debug("iteration %i" % i)
+            laser = neato.get_laser(avoidingConfiguration)
+            dL = -iniLW + (k_front_outer_right*laser.back_outer_right.proximity_percent() + k_front_center_right*laser.back_center_right.proximity_percent() + k_front_center*laser.back_center.proximity_percent())
+            dR = -iniRW + (k_front_outer_left*laser.back_outer_left.proximity_percent() + k_front_center_left*laser.back_center_left.proximity_percent() + k_front_center*laser.back_center.proximity_percent()/2)
+            neato.set_motors(left=dL, right=dR)
+            #if laser.back_center.original_dist < 500:
+                #break
+
+        #neato.move_backwards(self.k)
+        neato.stop()
         neato.saved_speed = original_speed
 
 def envia(ser, message, delay=0.1, show_time=False):

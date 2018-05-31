@@ -89,5 +89,5 @@ class Odometry(object):
         #x_est, y_est, delta_th_est = self.estimation_pose()
         #s = s + "\n(x, y) estimated = (%i, %i)" % (x_est, y_est)
         #s = s + "\nDelta Theta estimated = %.2f\n" % degrees(delta_th_est)
-        s = s + '#' * len(header)
+        s = s + '\n' + '#' * len(header)
         return s
