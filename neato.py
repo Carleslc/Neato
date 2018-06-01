@@ -84,7 +84,7 @@ class NeatoMock(object):
 
     def stop(self, reset_motors=True):
         if not self.is_stopped():
-            debug("Stop Update Odometry")
+            #debug("Stop Update Odometry")
             if hasattr(self, '_resetLR_timer'):
                 self._resetLR_timer.cancel()
             if reset_motors:
@@ -122,6 +122,7 @@ class NeatoMock(object):
             self.sleep(abs(L)/self.saved_speed)
             #debug("Sleep time: %i" % (abs(L)/self.saved_speed))
             #self.show_odometry("AFTER ROTATION")
+        self.show_odometry()
         return rotate
 
     def rotate_left(self, alfa, optimize=True, limit=0.001):
@@ -135,6 +136,7 @@ class NeatoMock(object):
         self.set_motors(d, d)
         self.sleep(abs(d)/self.saved_speed)
         #self.show_odometry("AFTER MOVE")
+        self.show_odometry()
 
     def move_backwards(self, d):
         self.rotate(180)
@@ -315,13 +317,16 @@ class EuclideToPosition(Movement):
         x = self.x - neato.odometry.x
         y = self.y - neato.odometry.y
         if not is_zero(x):
-            alfa = degrees(atan(x/y))
-            #debug("Atan %.2f" % alfa)
-            alfa = sign(alfa)*(90 - abs(alfa))
-        if not is_zero(x) and x < 0: # backwards
-            alfa = alfa + 180.0 # set forwards
-        alfa = mod(alfa - neato.alfa()) # coordinates offset
-        debug("Alfa: %.2f" % alfa)
+            alfa = degrees(atan2(y,x))
+            #alfa = sign(alfa)*(90 - abs(alfa))
+        #if not is_zero(x) and x < 0: # backwards
+            #alfa = alfa + 180.0 # set forwards
+        #alfa = mod(alfa - neato.alfa()) # coordinates offset
+        alfa = alfa - neato.alfa()
+
+        #neato.set_alfa(0)
+        debug("now setting this Alfa: %.2f" % alfa)
+        #neato.rotate(-neato.alfa)
         Euclide(alfa, sqrt(x**2 + y**2), self.optimize).apply(neato)
 
 class Pose(Movement):
@@ -335,7 +340,8 @@ class Pose(Movement):
     def apply(self, neato):
         self.position_move.apply(neato)
         info("Orientate to %.2f" % self.alfa)
-        neato.set_alfa(self.alfa)
+        #neato.set_alfa(self.alfa)
+        neato.rotate(self.alfa - neato.alfa())
 
 class SecurePose(Movement):
 
@@ -437,6 +443,7 @@ class SecurePose(Movement):
         neato.rotate(alfa + 180)
 
         LaserRay.DIST_LIMIT = 100
+        #Laser.OFFSET = 200
 
         iniLW = LaserRay.DIST_LIMIT
         iniRW = LaserRay.DIST_LIMIT
@@ -450,16 +457,15 @@ class SecurePose(Movement):
         k_front_outer_left = 1 * MOVING_DIST / 16
 
         for i in range(1,40):
-            #debug("iteration %i" % i)
             laser = neato.get_laser(avoidingConfiguration)
+            if laser.back_center.proximity_percent() > 0.95:
+                break
             dL = -iniLW + (k_front_outer_right*laser.back_outer_right.proximity_percent() + k_front_center_right*laser.back_center_right.proximity_percent() + k_front_center*laser.back_center.proximity_percent())
             dR = -iniRW + (k_front_outer_left*laser.back_outer_left.proximity_percent() + k_front_center_left*laser.back_center_left.proximity_percent() + k_front_center*laser.back_center.proximity_percent()/2)
             neato.set_motors(left=dL, right=dR)
-            #if laser.back_center.original_dist < 500:
-                #break
 
         #neato.move_backwards(self.k)
-        neato.stop()
+        neato.close()
         neato.saved_speed = original_speed
 
 def envia(ser, message, delay=0.1, show_time=False):

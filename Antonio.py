@@ -10,7 +10,7 @@ tiempo = 20
 FORWARDS = 0
 BACKWARDS = 1
 
-go_to_charge = SecurePose(x=0, y=0, alfa=0, k=700)
+go_to_charge = SecurePose(x=0, y=0, alfa=0, k=500)
 go_to_zero = Pose(x=0, y=0, alfa=0)
 
 direccion = FORWARDS
@@ -18,8 +18,8 @@ direccion = FORWARDS
 def move_with_key(tecla):
     global direccion
     debug("Key: " + tecla)
-    #neato.show_odometry("BEFORE KEY")
     neato.update_odometry() #this update is needed!
+    neato.show_odometry("KEY PRESSED")
 
     speed = neato.odometry.speed
 
@@ -74,7 +74,7 @@ def move_with_key(tecla):
             debug("Direction: backward")
 
     #debug("After key")
-    neato.show_odometry("AFTER KEY")
+    #neato.show_odometry("AFTER KEY")
     info('\n')
 
 if __name__ == "__main__":
