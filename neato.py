@@ -148,7 +148,7 @@ class NeatoMock(object):
 
     def orientate(self, laser, sector, limit=5):
         info("Orientate to %s" % sector.tag)
-        self.set_alfa(sector.center(), limit)
+        self.rotate(sector.center(), limit)
         dist = laser[sector.tag].original_dist
         if not is_zero(dist):
             self.move_forwards(dist)

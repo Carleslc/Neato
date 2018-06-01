@@ -154,6 +154,15 @@ class Laser(object):
         ray.tag = tag
         return ray
 
+    def get_wall(self):
+        sectors_sum = dict()
+        for sector in self.sectors:
+            rays = filter(lambda ray: ray.dist != LaserRay.DIST_LIMIT, self.all(sector.tag))
+            suma = sum(map(lambda ray: ray.dist, rays))
+            sectors_sum[suma] = sector
+        maxSum = max(sectors_sum.keys())
+        return sectors_sum[maxSum]
+
     def __getitem__(self, tag): # makes Laser subscriptable by sector tag
         return getattr(self, tag)
 
