@@ -16,18 +16,18 @@ def info():
     info_laser()
     neato.odometry.show()
 
-def get_avoiding_distances():
+def get_avoiding_distances(laser):
     dL = iniLW - (k_front_outer_right*laser.front_outer_right.proximity_percent() + k_front_center_right*laser.front_center_right.proximity_percent() + k_front_center*laser.front_center.proximity_percent())
     dR = iniRW - (k_front_outer_left*laser.front_outer_left.proximity_percent() + k_front_center_left*laser.front_center_left.proximity_percent() + k_front_center*laser.front_center.proximity_percent()/2)
     return dL, dR
 
-def avoid_obstacles():
-    dL, dR = get_avoiding_distances()
+def avoid_obstacles(laser):
+    dL, dR = get_avoiding_distances(laser)
     neato.set_motors(left=dL, right=dR)
 
-def avoid_obstacles_with_original_direction(): # 1,5 punts esquivar objecte mantenint direccio, 2 punts si manté la mateixa linia
+def avoid_obstacles_with_original_direction(laser): # 1,5 punts esquivar objecte mantenint direccio, 2 punts si manté la mateixa linia
     global alfaIni, yIni
-    dL, dR = get_avoiding_distances()
+    dL, dR = get_avoiding_distances(laser)
     if is_zero(iniLW - dL, limit=50) and is_zero(iniRW - dR, limit=50): # there are no obstacles
         speed = MAX_SPEED
         # fix direction
@@ -58,7 +58,7 @@ def avoid_obstacles_with_original_direction(): # 1,5 punts esquivar objecte mant
     neato.set_motors(left=dL, right=dR, speed=speed)
     neato.update_odometry()
 
-def find_wall():
+def find_wall(laser):
     sector = laser.get_wall()
     debug("Wall: %s" % sector.tag)
     center = sector.center()
@@ -69,7 +69,7 @@ def find_wall():
         laser = neato.get_laser(laser_conf)
         neato.set_motors(left=100, right=100)
 
-def distances_follow_wall_right():
+def distances_follow_wall_right(laser):
     go_left = 0
     go_right = 0
     if laser.front_outer_right.dist > 100:
@@ -80,16 +80,16 @@ def distances_follow_wall_right():
     dR = iniRW - (k_front_center_left*laser.front_center_left.proximity_percent() + go_right)
     return dL, dR
 
-def follow_wall():
-    dL, dR = get_follow_wall_distances()
+def follow_wall(laser):
+    dL, dR = distances_follow_wall_right(laser)
     neato.set_motors(left=dL, right=dR)
 
-def meet_object():
+def meet_object(laser):
     dL = iniLW + (laser.front_outer_right.proximity()*16 + laser.front_center_right.proximity()*8)
     dR = iniRW + (laser.front_outer_left.proximity()*16 + laser.front_center_left.proximity()*8)
     neato.set_motors(left=dL, right=dR)
 
-def meet_object_v2():
+def meet_object_v2(laser):
     near1 = laser.nearest(average=False)
     near2 = neato.get_laser(laser_conf).nearest(average=False)
     near3 = neato.get_laser(laser_conf).nearest(average=False)
@@ -144,14 +144,14 @@ def meeting_distances_config():
     iniLW = LaserRay.DIST_LIMIT
     iniRW = LaserRay.DIST_LIMIT
 
-if __name__ == "__main__":
+def run(config):
     log_level(DEBUG)
 
     global neato, alfaIni, yIni, laser_conf
 
-    avoid_obstacles_config()
+    config.var_conf()
 
-    neato = Neato(speed=speed, laser=True)
+    neato = NeatoMock(speed=speed, laser=True)
 
     neato.sleep(2)
 
@@ -166,11 +166,12 @@ if __name__ == "__main__":
         def execute():
             global laser
             laser = neato.get_laser(laser_conf)
-            f()
+            f(laser)
         return execute
 
     loop(info, interval=5) # display info every 3 seconds (in addition to other calls)
 
-    laser_conf = commonConfiguration
-    run_with_laser(find_wall)()
-    neato.run(run_with_laser(follow_wall))
+    laser_conf = config.laser_conf
+    if config.ini != None:
+        run_with_laser(config.ini)()
+    neato.run(run_with_laser(config.f))
