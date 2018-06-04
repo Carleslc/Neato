@@ -84,6 +84,7 @@ def find_wall():
     neato.rotate_right(90)
 
 def distances_follow_wall(laser, wall):
+    """
     global straight, go_left, go_right
     debug("Distance to wall: %i" % wall.original_dist)
     debug("Wall: %s" % str(wall))
@@ -104,6 +105,28 @@ def distances_follow_wall(laser, wall):
     dL = iniLW - go_left
     dR = iniRW - go_right
     return dL, dR
+    """
+    go_right = go_left = 0
+    debug("Wall: %s" % str(wall))
+    debug("Distance to wall: %i" % wall.original_dist)
+    if wall.sector.is_left() or wall.sector.is_right():
+        debug("WALL ON A SIDE")
+        if wall.sector.is_left():
+            debug("GO LEFT")
+            go_left = wall.original_dist #WE HAVE TO FIND AN EQUIVALENCE, AT A CERTAIN DIST GO_LEFT == GO_RIGHT
+            go_right = k_front_center*laser.front_center.proximity_percent() + k_front_outer_left*laser.front_outer_left.proximity_percent()
+        elif wall.sector.is_right():
+            debug("GO RIGHT")
+            go_left = k_front_center*laser.front_center.proximity_percent() + k_front_outer_right*laser.front_outer_right.proximity_percent()
+            go_right = wall.original_dist #WE HAVE TO FIND AN EQUIVALENCE, AT A CERTAIN DIST GO_LEFT == GO_RIGHT
+        debug("go_left, go_right: %i, %i" % (go_left, go_right))
+        dL = iniLW + go_right
+        dR = iniRW + go_left
+        return dL, dR
+    else:
+        debug("GO TO THE CLOSEST WALL")
+        find_wall()
+        return 0, 0
 
 def follow_wall(laser):
     dL, dR = distances_follow_wall(laser, scan_wall_ray())
