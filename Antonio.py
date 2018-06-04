@@ -20,6 +20,9 @@ def move_with_key(tecla):
     debug("Key: " + tecla)
     neato.update_odometry() #this update is needed!
     neato.show_odometry("KEY PRESSED")
+    neato.odometry_queue.put([(-neato.odometry.x,-neato.odometry.y),(100,100)]) #y i x perque el viewer ho imprimeix com vol
+    neato.show_laser_viewer()
+
 
     speed = neato.odometry.speed
 
@@ -65,7 +68,7 @@ def move_with_key(tecla):
         neato.move(go_to_zero)
 
     elif tecla == '9':
-    	neato.move(go_to_charge)
+        neato.move(go_to_charge)
 
     if tecla == '8' or tecla == '2' or tecla == '6' or tecla == '4' or tecla == '5':
         if direccion == FORWARDS:
@@ -80,7 +83,7 @@ def move_with_key(tecla):
 if __name__ == "__main__":
     global neato
     log_level(DEBUG)
-    neato = Neato(speed=150, laser=True)
+    neato = Neato(speed=150, laser=True, viewer=True)
     neato.sleep(3)
     #neato.move(Manhattan(charging_station_x, charging_station_y), EuclideToPosition(0, 0))
     neato.run_until_key('q', move_with_key)

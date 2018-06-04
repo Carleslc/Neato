@@ -1,0 +1,143 @@
+<html>
+
+<head>
+	<title>NEATO VIEWER</title>
+	<meta http-equiv="refresh" content="1.5">
+	<script type="text/javascript" src="jquery.min.js"></script>
+
+    <style>
+        body {
+            background-color: linen;
+        }
+
+        h1 {
+            color: maroon;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        canvas {
+            border-style: solid;
+            border-width: 5px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    </style>
+
+</head>
+
+<body>
+    <center><h1>Neato Viewer</h1></center>
+	<center>
+		<canvas id="canvas" width="800" height="800">
+			Your browser does not support the canvas element.
+		</canvas>
+	</center>
+
+	<script type="text/javascript">
+		var canvas = document.getElementById("canvas");
+		var context = document.getElementById('canvas').getContext('2d');
+
+        var pathPoints = [];
+		var posePoints = [];
+		var laserPoints = [];
+
+		// Determine where the user clicked, I believe I pulled this from elsewhere on StackOverflow a while ago.
+		function getCursorPosition(e) {
+			var mx, my;
+			if (e.pageX || e.pageY) {
+				mx = e.pageX;
+				my = e.pageY;
+			}
+			else {
+				mx = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+				my = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+			}
+			mx -= canvas.offsetLeft;
+			my -= canvas.offsetTop;
+			return { x: mx, y: my };
+		}
+
+		// Once we have at least two points, draw a line between them.
+		function drawPath(point_list, radio, primary_color, second_color) {
+			context.beginPath();
+			context.strokeStyle= primary_color;
+            for (var i = 0; i < point_list.length - 1; i++) {
+                context.moveTo(point_list[i]['x'] + 400, point_list[i]['y'] + 400);
+                context.lineTo(point_list[i + 1]['x'] + 400, point_list[i + 1]['y'] + 400);
+				context.stroke();
+			}
+			context.closePath();
+
+			context.strokeStyle = second_color;
+
+            for (var i = 0; i < point_list.length - 1; i++) {
+				context.beginPath();
+                context.arc(point_list[i]['x'] + 400, point_list[i]['y'] + 400, radio, 0, 2 * Math.PI, true);
+				context.stroke();
+				context.closePath();
+			}
+		}
+
+        function drawPoints(point_list, radio, color_stroke, color_fill) {
+
+            context.strokeStyle = color_stroke;
+            context.fillStyle = color_fill;
+            
+            for (var i = 0; i < point_list.length - 1; i++) {
+                context.beginPath();
+                context.arc(point_list[i]['x'] + 400, point_list[i]['y'] + 400, radio, 0, 2 * Math.PI, true);
+                context.fill();
+                context.closePath();
+            }
+        }
+
+
+		function init() {
+			// Load up your image.  Don't attempt to draw it until we know it's been loaded.
+			var mountain = new Image();
+			mountain.src = 'cuadricula.png';  // Replace with actual image.
+
+			mountain.onload = function () {
+				context.drawImage(this, 0, 0);
+
+                $.getJSON('path.json', function (data) {
+                    $.each(data.path, function (i, f) {
+                        pathPoints.push(f)
+                    });
+
+                    if (pathPoints.length > 1) {
+                        drawPath(pathPoints, 3, "#00FF00", "#00FF00");
+                    }
+                });
+
+				$.getJSON('pose.json', function (data) {
+					$.each(data.pose, function (i, f) {
+						posePoints.push(f)
+					});
+
+					if (posePoints.length > 1) {
+                        drawPoints(posePoints, 1.5, "#0000FF", "#0000FF");
+					}
+				});
+
+				$.getJSON('laser.json', function (data) {
+					$.each(data.laserPoints, function(i, f) {
+						laserPoints.push(f)
+					});
+
+					if (laserPoints.length > 1) {
+                        drawPoints(laserPoints, 1.5, "#FF0000", "#ff0000");
+					}
+				});
+			}
+			
+		}
+
+		// Should check if document has finished loading first, but I'm too lazy, especially without JQuery.
+		jQuery(window).load(init());
+	</script>
+
+</body>
+
+</html>

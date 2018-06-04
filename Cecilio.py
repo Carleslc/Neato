@@ -59,15 +59,18 @@ def avoid_obstacles_with_original_direction(laser): # 1,5 punts esquivar objecte
     neato.update_odometry()
 
 def follow_wall_config():
-    global wall_dist_limit
+    global wall_dist_limit_max, wall_dist_limit_min, straight, far, near
     avoid_obstacles_config()
-    wall_dist_limit = 100
+    wall_dist_limit = 200
     LaserRay.DIST_LIMIT = 1500
     k_front_outer_right = 1 * MOVING_DIST
     k_front_center_right = 2 * MOVING_DIST
     k_front_center = 1 * MOVING_DIST
     k_front_center_left = 1 * MOVING_DIST
     k_front_outer_left = 1 * MOVING_DIST
+    straight = True
+    far = False
+    near = False
 
 def scan_wall_ray():
     return neato.get_laser(findWallConfiguration).get_wall().nearest()
@@ -76,22 +79,28 @@ def find_wall():
     wall = scan_wall_ray()
     debug("Wall: %s" % str(wall))
     neato.rotate(wall.alfa)
-    debug("Distance to wall: %.2f" % wall.dist)
-    dist = wall.dist - wall_dist_limit
-    neato.move_forwards(dist)
+    debug("Distance to wall: %.2f" % wall.original_dist)
+    neato.move_forwards(wall.dist)
     neato.rotate_right(90)
 
 def distances_follow_wall(laser, wall):
-    go_left = 0
-    go_right = 0
-    debug("Distance to wall: %.2f" % wall.dist)
+    global straight, go_left, go_right
+    debug("Distance to wall: %i" % wall.original_dist)
+    debug("Wall: %s" % str(wall))
     debug("GO TO WALL")
-    if wall.sector.is_left():
-        debug("GO LEFT")
-        go_left = wall.dist - wall_dist_limit# + k_front_outer_right*laser.front_outer_right.dist
-    elif wall.sector.is_right():
-        debug("GO RIGHT")
-        go_right = wall.dist - wall_dist_limit# + k_front_outer_left*laser.front_outer_left.proximity_percent()
+    if straight and wall.dist > wall_dist_limit:
+        debug("TOO FAR")
+        if wall.sector.is_left():
+            debug("GO LEFT")
+            go_left = wall.original_dist
+            go_right = k_front_center*laser.front_center.proximity_percent() + k_front_outer_left*laser.front_outer_left.proximity_percent()
+        elif wall.sector.is_right():
+            debug("GO RIGHT")
+            go_right = 50#wall.dist - wall_dist_limit# + k_front_outer_left*laser.front_outer_left.proximity_percent()
+            go_left = 0
+        straight = False
+    debug("go_right value: %i" % go_right)
+    debug("go_left value: %i" % go_left)
     dL = iniLW - go_left
     dR = iniRW - go_right
     return dL, dR
@@ -169,13 +178,13 @@ def run(config):
     neato.sleep(2)
 
     def run_with_laser(f):
-        def execute():
+        def execute(key=None):
             global laser
             laser = neato.get_laser(laser_conf)
             f(laser)
         return execute
 
-    loop(info, interval=5) # display info every 3 seconds (in addition to other calls)
+    #loop(info, interval=5) # display info every 3 seconds (in addition to other calls)
 
     laser_conf = config.laser_conf
     if config.ini != None:

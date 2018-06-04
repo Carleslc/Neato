@@ -20,7 +20,6 @@ def loop(block, interval=0, daemon=True, *args):
                 block(*args)
                 stop = e.wait(interval)
             except Exception as ex:
-                debug(e.message)
                 stop = True
     t = Thread(target=do)
     t.setDaemon(daemon)
