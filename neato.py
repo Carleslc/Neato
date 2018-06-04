@@ -11,6 +11,10 @@ from async import run
 from utils import mod, sign, is_zero, abs_alfa, medianOfThree
 from Odometry import Odometry
 from math import sin, cos, atan, pi, sqrt, degrees, radians, atan2
+from sets import Set
+from multiprocessing import Queue
+import http_viewer
+from numpy import dot, transpose
 
 GO_SUPER_FAST = 0
 
@@ -22,8 +26,8 @@ class NeatoMock(object):
     when you does not have connection to the Neato robot
     """
 
-    def __init__(self, laser=False, speed=100, delta_d=0, delta_th=0, theta_dot=0.0, x_ini=0, y_ini=0, noise_d=0.0001, noise_th=0.000001):
-        _Neato_init(self, serial=False, default_speed=speed, laser=laser, odometry=Odometry(delta_d=delta_d, delta_th=delta_th, theta_dot=theta_dot, x_ini=x_ini, y_ini=y_ini, noise_d=noise_d, noise_th=noise_th))
+    def __init__(self, laser=False, viewer=False, speed=100, delta_d=0, delta_th=0, theta_dot=0.0, x_ini=0, y_ini=0, noise_d=0.0001, noise_th=0.000001):
+        _Neato_init(self, serial=False, viewer=viewer, default_speed=speed, laser=laser, odometry=Odometry(delta_d=delta_d, delta_th=delta_th, theta_dot=theta_dot, x_ini=x_ini, y_ini=y_ini, noise_d=noise_d, noise_th=noise_th))
 
     def is_mocked(self):
         return not hasattr(self, 'ser')
@@ -220,6 +224,47 @@ class NeatoMock(object):
                 self.close()
                 return
             block(key)
+    
+    def run_once(self, block):
+        """ Execute `block` once, closing neato if Ctrl^C is pressed """
+        _close_on_ctrl_C(self, block)
+
+    def viewer_start(self, port_web_server):
+        self.laser_queue = Queue()
+        self.odometry_queue = Queue()
+        self.viewer = http_viewer.HttpViewer(port_web_server, self.laser_queue, self.odometry_queue)
+        debug("Started Http Viewer at port %i" % port_web_server)
+
+    def show_laser_viewer(self):
+        laser_set = Set()
+        laser = self.get_laser(commonConfiguration)
+        def polar_to_cart(laser):
+            cart = []
+            for ray in laser.all(): #Polar 2 Cartesian in Robot Reference Frame
+                if ray.is_error() == 0:
+                    angulo = radians(ray.alfa)
+                    x_r = int(ray.dist)*cos(angulo) 
+                    y_r = int(ray.dist)*sin(angulo)
+                    cart.append([x_r, y_r, 1])
+            return cart
+
+        def cart_to_world(coord):
+            x = -self.odometry.x
+            y = -self.odometry.y
+            theta = self.odometry.suma_theta
+            TAB = [[cos(theta),-sin(theta), x], [sin(theta), cos(theta), y], [0, 0, 1]]
+            world = dot(TAB,transpose(coord))
+            return transpose(world)
+
+        values = polar_to_cart(laser)
+        if len(values) > 0:
+            values = cart_to_world(values)
+            for i in values:
+                        tuple = (int(i[0]), int(i[1]))
+                        if tuple not in laser_set:
+                            self.laser_queue.put([(i[0], i[1]), (100,100)])
+                            laser_set.add(tuple)
+
 
 class Neato(NeatoMock):
     """
@@ -228,8 +273,8 @@ class Neato(NeatoMock):
 
     S = 121.5; # millimeters
 
-    def __init__(self, laser=False, speed=100, delta_d=0, delta_th=0, theta_dot=0.0, x_ini=0, y_ini=0, noise_d=0.0001, noise_th=0.000001):
-        _Neato_init(self, serial=True, default_speed=speed, laser=laser, odometry=Odometry(delta_d=delta_d, delta_th=delta_th, theta_dot=theta_dot, x_ini=x_ini, y_ini=y_ini, noise_d=noise_d, noise_th=noise_th))
+    def __init__(self, laser=False, viewer=False, speed=100, delta_d=0, delta_th=0, theta_dot=0.0, x_ini=0, y_ini=0, noise_d=0.0001, noise_th=0.000001):
+        _Neato_init(self, serial=True, viewer=viewer, default_speed=speed, laser=laser, odometry=Odometry(delta_d=delta_d, delta_th=delta_th, theta_dot=theta_dot, x_ini=x_ini, y_ini=y_ini, noise_d=noise_d, noise_th=noise_th))
     
     def send(self, message, delay=0.1):
         return _envia(self.ser, message, delay, sleep=self.sleep)
@@ -473,7 +518,7 @@ def envia(ser, message, delay=0.1, show_time=False):
 
 ## INTERNAL METHODS ##
 
-def _Neato_init(neato, default_speed=100, odometry=None, laser=False, serial=True):
+def _Neato_init(neato, default_speed=100, odometry=None, laser=False, viewer=False, serial=True):
     if serial:
         neato.ser = serial_port.Serial(port='/dev/ttyACM0', baudrate=115200, timeout=GO_SUPER_FAST) # open serial port
     neato.sleep = _Neato_sleep_bound(neato)
@@ -495,6 +540,8 @@ def _Neato_init(neato, default_speed=100, odometry=None, laser=False, serial=Tru
     neato.odometry.R = R_ini
     neato.enabled_laser = False
     neato.enable_laser(laser)
+    if viewer:
+        neato.viewer_start(int(sys.argv[1]))
     neato.sleep(0.5)
 
 def _Neato_close(neato):
@@ -502,6 +549,8 @@ def _Neato_close(neato):
     neato.enable_motors(False)
     neato.enable_laser(False)
     neato.test_mode(False)
+    if hasattr(neato, 'viewer'):
+        neato.viewer.quit()
     if not neato.is_mocked():
         neato.ser.close() # close serial port
     neato.sleep(0.3)

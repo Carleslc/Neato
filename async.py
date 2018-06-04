@@ -14,8 +14,14 @@ def loop(block, interval=0, daemon=True, *args):
     """
     e = Event()
     def do():
-        while not e.wait(interval): # the first call is in `interval` secs
-            block(*args)
+        stop = e.wait(interval)
+        while not stop: # the first call is in `interval` secs
+            try:
+                block(*args)
+                stop = e.wait(interval)
+            except Exception as ex:
+                debug(e.message)
+                stop = True
     t = Thread(target=do)
     t.setDaemon(daemon)
     t.start()

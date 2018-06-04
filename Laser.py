@@ -20,47 +20,54 @@ def priorityConfiguration():
     right        240/-120 ~ 300/-60  (60 º)
     """
     return LaserSectors(
-            LaserSector('front_right', -60, -30, front=True),
+            LaserSector('front_right', -60, -30, front=True, right=True),
             LaserSector('front', -30, 30, front=True),
-            LaserSector('front_left', 30, 60, front=True),
-            LaserSector('left', 60, 120),
-            LaserSector('back_left', 120, 150, back=True),
+            LaserSector('front_left', 30, 60, front=True, left=True),
+            LaserSector('left', 60, 120, left=True),
+            LaserSector('back_left', 120, 150, back=True, left=True),
             LaserSector('back', 150, 210, back=True),
-            LaserSector('back_right', 210, 240, back=True),
-            LaserSector('right', 240, 300))
+            LaserSector('back_right', 210, 240, back=True, right=True),
+            LaserSector('right', 240, 300, right=True))
 
 def commonConfiguration(offset=18):
     """
     Ten equal-sized divisions of 36º each
     """
     return LaserSectors(
-            LaserSector('front_outer_right', -36*2 - offset, -36 - offset, front=True),
-            LaserSector('front_center_right', -36 - offset, 0 - offset, front=True),
+            LaserSector('front_outer_right', -36*2 - offset, -36 - offset, front=True, right=True),
+            LaserSector('front_center_right', -36 - offset, 0 - offset, front=True, right=True),
             LaserSector('front_center', 0 - offset, 36 - offset, front=True),
-            LaserSector('front_center_left', 36 - offset, 36*2 - offset, front=True),
-            LaserSector('front_outer_left', 36*2 - offset, 36*3 - offset, front=True),
-            LaserSector('back_outer_left', 36*3 - offset, 36*4 - offset, back=True),
-            LaserSector('back_center_left', 36*4 - offset, 36*5 - offset, back=True),
+            LaserSector('front_center_left', 36 - offset, 36*2 - offset, front=True, left=True),
+            LaserSector('front_outer_left', 36*2 - offset, 36*3 - offset, front=True, left=True),
+            LaserSector('back_outer_left', 36*3 - offset, 36*4 - offset, back=True, left=True),
+            LaserSector('back_center_left', 36*4 - offset, 36*5 - offset, back=True, left=True),
             LaserSector('back_center', 36*5 - offset, 36*6 - offset, back=True),
-            LaserSector('back_center_right', 36*6 - offset, 36*7 - offset, back=True),
-            LaserSector('back_outer_right', 36*7 - offset, 36*8 - offset, back=True))
+            LaserSector('back_center_right', 36*6 - offset, 36*7 - offset, back=True, right=True),
+            LaserSector('back_outer_right', 36*7 - offset, 36*8 - offset, back=True, right=True))
 
-def avoidingConfiguration(offset=18):
+def avoidingConfiguration():
     """
     front: 18º 71º 2º 71º 18º
     back: 18º 71º 2º 71º 18º
     """
     return LaserSectors(
-            LaserSector('front_outer_right', -90, -90 + 36, front=True),
-            LaserSector('front_center_right', -54, -54 + 53, front=True),
+            LaserSector('front_outer_right', -90, -90 + 36, front=True, right=True),
+            LaserSector('front_center_right', -54, -54 + 53, front=True, right=True),
             LaserSector('front_center', -1, -1 + 2, front=True),
-            LaserSector('front_center_left', 1, 1 + 53, front=True),
-            LaserSector('front_outer_left', 54, 54 + 36, front=True),
-            LaserSector('back_outer_left', 90, 90 + 36, back=True),
-            LaserSector('back_center_left', 126, 126 + 53, back=True),
+            LaserSector('front_center_left', 1, 1 + 53, front=True, left=True),
+            LaserSector('front_outer_left', 54, 54 + 36, front=True, left=True),
+            LaserSector('back_outer_left', 90, 90 + 36, back=True, left=True),
+            LaserSector('back_center_left', 126, 126 + 53, back=True, left=True),
             LaserSector('back_center', 179, 179 + 2, back=True),
-            LaserSector('back_center_right', 181, 181 + 53, back=True),
-            LaserSector('back_outer_right', 234, 234 + 36, back=True))
+            LaserSector('back_center_right', 181, 181 + 53, back=True, right=True),
+            LaserSector('back_outer_right', 234, 234 + 36, back=True, right=True))
+
+def findWallConfiguration():
+    return LaserSectors(
+        LaserSector('front', -45, 45, front=True),
+        LaserSector('left', 45, 135, left=True),
+        LaserSector('back', 135, 225, back=True),
+        LaserSector('right', 225, 315, right=True))
 
 ## LASER ##
 
@@ -101,6 +108,12 @@ class Laser(object):
         ray.tag = 'back_average'
         return ray
 
+    def find_front_center(self):
+        return self.front_center.sector if hasattr(self, 'front_center') else self.sectors.find(0)
+
+    def find_back_center(self):
+        return self.back_center.sector if hasattr(self, 'back_center') else self.sectors.find(180)
+
     def apply(self, block):
         """ Apply block function for each sector following configuration sector order """
         for_each(self.sectors, block)
@@ -111,22 +124,11 @@ class Laser(object):
 
     def farthest(self, average=True):
         """ Get the ray with farthest distance, either for average rays or for all rays """
-        return self.__ray_by_dist(max, average)
+        return __ray_by_dist(max, self.rays(empties=True) if average else self.all())
 
     def nearest(self, average=True):
         """ Get the ray with nearest distance, either for average rays or for all rays """
-        return self.__ray_by_dist(min, average)
-
-    def __ray_by_dist(self, dist_f, average=True):
-        rays = self.rays(empties=True) if average else self.all()
-        distances = np.array(map(lambda ray: ray.dist, rays))
-        match_dist = dist_f(distances)
-        matches_indices = np.where(distances == match_dist)[0]
-        match_rays = [rays[i] for i in matches_indices]
-        if len(match_rays) == 1:
-            return match_rays[0]
-        larger_sectors = map(lambda ray: ray.sector.degrees(), match_rays)
-        return match_rays[larger_sectors.index(max(larger_sectors))]
+        return __ray_by_dist(min, self.rays(empties=True) if average else self.all())
 
     def summary(self, empties=False):
         """ Print mean rays for every non-empty valid sector, including front and back averages """
@@ -155,13 +157,20 @@ class Laser(object):
         return ray
 
     def get_wall(self):
+        """ Find the centered sector with greater average distance (bigger object) """
+        debug("Get Wall")
         sectors_sum = dict()
         for sector in self.sectors:
-            rays = filter(lambda ray: ray.dist != LaserRay.DIST_LIMIT, self.all(sector.tag))
-            suma = sum(map(lambda ray: ray.dist, rays))
-            sectors_sum[suma] = sector
-        maxSum = max(sectors_sum.keys())
-        return sectors_sum[maxSum]
+            rays = filter(LaserRay.is_valid, self.all(sector.tag))
+            suma = sum(map(lambda ray: ray.proximity(), rays))
+            debug("%s (%i) PROXIMITY SUM %i" % (sector.tag, len(rays), suma))
+            sectors_sum[len(rays)] = sector
+        max_sum = max(sectors_sum.keys())
+        wall_sector = sectors_sum[max_sum]
+        #if not wall_sector.is_center():
+        #    debug("Before wall centering %s" % wall_sector.tag)
+        #    wall_sector = wall_sector.right if wall_sector < self.find_front_center() else wall_sector.left
+        return wall_sector
 
     def __getitem__(self, tag): # makes Laser subscriptable by sector tag
         return getattr(self, tag)
@@ -233,7 +242,7 @@ class LaserRay(object):
 class LaserSector(object):
     """ Represents a division on the 360º circumference for rotative laser """
 
-    def __init__(self, tag, start, end, front=False, back=False):
+    def __init__(self, tag, start, end, front=False, back=False, right=False, left=False):
         assert not (front and back)
         assert end - start >= 0 and end - start <= 360
         self.tag = tag
@@ -241,6 +250,8 @@ class LaserSector(object):
         self.end = end # degrees exclusive
         self.front = front
         self.back = back
+        self.right = right
+        self.left = left
         self.__rays = []
 
     def add(self, ray):
@@ -272,6 +283,14 @@ class LaserSector(object):
         """ Get all rays in this sector """
         return self.__rays
 
+    def farthest(self):
+        """ Get minimum distance ray in this sector """
+        return _ray_by_dist(max, self.rays())
+
+    def nearest(self):
+        """ Get minimum distance ray in this sector """
+        return _ray_by_dist(min, self.rays())
+
     def degrees(self):
         """ Returns the angle in degrees of this sector """
         return self.end - self.start
@@ -284,20 +303,39 @@ class LaserSector(object):
         """ Returns if this sector is part of the back """
         return self.back
 
+    def is_left(self):
+        """ Returns if this sector is part of the left """
+        return self.left
+
+    def is_right(self):
+        """ Returns if this sector is part of the right """
+        return self.right
+
     def center(self):
         """ Returns the mean angle of this sector """
         return abs_alfa((self.start + self.end)/2)
+
+    def is_center(self):
+        return self.includes(0) or self.includes(180)
 
     def normalize(self, alfa):
         """ Get normalized `alfa` mod 360 so negative start value for this sector means alfa will be turned negative if |alfa| >= |start| """
         alfa = abs_alfa(alfa)
         return alfa - 360 if self.start < 0 and alfa >= abs_alfa(self.start) else alfa
 
+    def __lt__(self, other):
+        return abs_alfa(self.start) < abs_alfa(other.start)
+
 class LaserSectors(object):
     """ Group of several sectors of rays """
 
     def __init__(self, *sectors):
         self.__sectors = odict()
+        for i in range(len(sectors)):
+            nextIdx = i + 1 if i + 1 < len(sectors) else 0
+            previousIdx = i - 1 if i >= 1 else -1
+            sectors[i].left = sectors[nextIdx]
+            sectors[i].right = sectors[previousIdx]
         for sector in sectors:
             self.__sectors[sector.tag] = sector
         self.tags = self.__sectors.keys()
@@ -364,7 +402,7 @@ class LaserSectors(object):
 
 ## GLOBAL METHODS ##
 
-def _mean(laser, laser_rays):
+def _mean(laser, laser_rays, validate=LaserRay.is_valid):
     """ LaserRay, average of valid laser_rays """
     assert len(laser_rays) > 0
 
@@ -373,7 +411,7 @@ def _mean(laser, laser_rays):
     intensity = 0
     size = 0
 
-    for ray in list(filter(LaserRay.is_valid, laser_rays)):
+    for ray in list(filter(validate, laser_rays)):
         size = size + 1
         alfa = alfa + ray.alfa
         dist = dist + ray.dist
@@ -384,6 +422,16 @@ def _mean(laser, laser_rays):
         alfa = sum(map(lambda ray: ray.alfa, laser_rays))/len(laser_rays)
 
     return LaserRay(laser, [alfa / size, dist / size, intensity / size, 0])
+
+def _ray_by_dist(dist_f, rays):
+    distances = np.array(map(lambda ray: ray.dist, rays))
+    match_dist = dist_f(distances)
+    matches_indices = np.where(distances == match_dist)[0]
+    match_rays = [rays[i] for i in matches_indices]
+    if len(match_rays) == 1:
+        return match_rays[0]
+    larger_sectors = map(lambda ray: ray.sector.degrees(), match_rays)
+    return match_rays[larger_sectors.index(max(larger_sectors))]
 
 def random_laser(configuration=priorityConfiguration):
     """ Builds a semi-random Laser, only for testing purposes """
