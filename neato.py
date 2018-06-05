@@ -30,7 +30,7 @@ class NeatoMock(object):
         _Neato_init(self, serial=False, viewer=viewer, default_speed=speed, laser=laser, odometry=Odometry(delta_d=delta_d, delta_th=delta_th, theta_dot=theta_dot, x_ini=x_ini, y_ini=y_ini, noise_d=noise_d, noise_th=noise_th))
 
     def is_mocked(self):
-        return not hasattr(self, 'ser')
+        return True
 
     def close(self):
         _Neato_close(self)
@@ -289,6 +289,9 @@ class Neato(NeatoMock):
         L = int(msg[4].split(',')[1])
         R = int(msg[8].split(',')[1])
         return L, R
+
+    def is_mocked(self):
+        return False
 
 ## MOVEMENT ##
 

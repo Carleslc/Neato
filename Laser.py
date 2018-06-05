@@ -62,6 +62,23 @@ def avoidingConfiguration():
             LaserSector('back_center_right', 181, 181 + 53, back=True, right=True),
             LaserSector('back_outer_right', 234, 234 + 36, back=True, right=True))
 
+def followWallConfiguration():
+    """
+    front: 59º 30º 2º 30º 59º
+    back: 59º 30º 2º 30º 59º
+    """
+    return LaserSectors(
+            LaserSector('front_outer_right', -90, -90 + 59, front=True, right=True),
+            LaserSector('front_center_right', -31, -31 + 30, front=True, right=True),
+            LaserSector('front_center', -1, -1 + 2, front=True),
+            LaserSector('front_center_left', 1, 1 + 30, front=True, left=True),
+            LaserSector('front_outer_left', 31, 31 + 59, front=True, left=True),
+            LaserSector('back_outer_left', 90, 90 + 59, back=True, left=True),
+            LaserSector('back_center_left', 149, 149 + 30, back=True, left=True),
+            LaserSector('back_center', 179, 179 + 2, back=True),
+            LaserSector('back_center_right', 181, 181 + 30, back=True, right=True),
+            LaserSector('back_outer_right', 211, 211 + 59, back=True, right=True))
+
 def findWallConfiguration():
     return LaserSectors(
         LaserSector('front', -45, 45, front=True),
@@ -124,7 +141,7 @@ class Laser(object):
 
     def farthest(self, average=True):
         """ Get the ray with farthest distance, either for average rays or for all rays """
-        return __ray_by_dist(max, self.rays(empties=True) if average else self.all())
+        return __ray_by_dist(max, self.rays(empties=False) if average else self.all())
 
     def nearest(self, average=True):
         """ Get the ray with nearest distance, either for average rays or for all rays """
@@ -162,8 +179,7 @@ class Laser(object):
         sectors_sum = dict()
         for sector in self.sectors:
             rays = filter(LaserRay.is_valid, self.all(sector.tag))
-            suma = sum(map(lambda ray: ray.proximity(), rays))
-            debug("%s (%i) PROXIMITY SUM %i" % (sector.tag, len(rays), suma))
+            debug("%s (%i)" % (sector.tag, len(rays)))
             sectors_sum[len(rays)] = sector
         max_sum = max(sectors_sum.keys())
         wall_sector = sectors_sum[max_sum]
@@ -283,9 +299,14 @@ class LaserSector(object):
         """ Get all rays in this sector """
         return self.__rays
 
+    def rays_if(self, condition):
+        """ Get laser rays matching a condition within this sector """
+        return list(filter(condition, self.rays()))
+
     def farthest(self):
         """ Get minimum distance ray in this sector """
-        return _ray_by_dist(max, self.rays())
+        rays = self.rays_if(LaserRay.is_valid)
+        return _ray_by_dist(max, rays if len(rays) > 0 else self.rays())
 
     def nearest(self):
         """ Get minimum distance ray in this sector """
@@ -334,8 +355,8 @@ class LaserSectors(object):
         for i in range(len(sectors)):
             nextIdx = i + 1 if i + 1 < len(sectors) else 0
             previousIdx = i - 1 if i >= 1 else -1
-            sectors[i].left = sectors[nextIdx]
-            sectors[i].right = sectors[previousIdx]
+            sectors[i].next = sectors[nextIdx]
+            sectors[i].previous = sectors[previousIdx]
         for sector in sectors:
             self.__sectors[sector.tag] = sector
         self.tags = self.__sectors.keys()
