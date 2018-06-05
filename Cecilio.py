@@ -251,6 +251,33 @@ def meeting_distances_config():
     iniLW = LaserRay.DIST_LIMIT
     iniRW = LaserRay.DIST_LIMIT
 
+def prey_config():
+    global MOVING_DIST, MAX_SPEED, speed, k_front_outer_right, k_front_center_right, k_front_center, k_front_center_left, k_front_outer_left
+    LaserRay.DIST_LIMIT = 1500
+
+    MOVING_DIST = LaserRay.DIST_LIMIT
+    MAX_SPEED = 300
+    speed = MAX_SPEED
+
+    # Avoiding obstacles parameters
+    k_front_outer_right = 1 * MOVING_DIST / 16
+    k_front_center_right = 1 * MOVING_DIST / 2
+    k_front_center = 2 * MOVING_DIST / 3
+    k_front_center_left = 1 * MOVING_DIST / 2
+    k_front_outer_left = 1 * MOVING_DIST / 16
+
+def prey(laser):
+    #escape from the front (removed ini and interchanged dL and dR)
+    dR = -(k_front_outer_right*laser.front_outer_right.proximity_percent() + k_front_center_right*laser.front_center_right.proximity_percent() + k_front_center*laser.front_center.proximity_percent())
+    dL = -(k_front_outer_left*laser.front_outer_left.proximity_percent() + k_front_center_left*laser.front_center_left.proximity_percent() + k_front_center*laser.front_center.proximity_percent()/2)
+
+    #escape from the back (removed ini and interchanged dL and dR)
+    dR = k_front_outer_right*laser.back_outer_right.proximity_percent() + k_front_center_right*laser.back_center_right.proximity_percent() + k_front_center*laser.back_center.proximity_percent()
+    dL = k_front_outer_left*laser.back_outer_left.proximity_percent() + k_front_center_left*laser.back_center_left.proximity_percent() + k_front_center*laser.back_center.proximity_percent()/2
+
+    neato.set_motors(left=dL, right=dR)
+
+
 def run(config):
     log_level(DEBUG)
 
