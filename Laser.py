@@ -207,13 +207,13 @@ class Laser(object):
         object_started = False
         alfa_detected = 0
         for ray in rays:
-            object_finished = object_started and not is_zero(ray.dist - dist_prev, limit=150) # distància amb la distància anterior major o menor que 200
+            object_finished = object_started and not is_zero(ray.dist - dist_prev, limit=400) # distància amb la distància anterior major o menor que 200
             if object_finished:
                 object_started = False
                 alfa = ray.alfa - alfa_obj # angle de l'objecte trobat
                 debug("Ray %s" % str(ray))
                 debug("Object finished, gruix %.2f" % alfa)
-                if is_zero(alfa - neato_alfa, limit=6) and (dist_obj < dist_detected): # neato nou
+                if is_zero(alfa - neato_alfa, limit=2) and (dist_obj < dist_detected): # neato nou
                     dist_detected = dist_obj
                     alfa_detected = alfa_obj + neato_alfa/2 #mean_angle(alfa_obj, ray.alfa)
             dist_prev = ray.dist

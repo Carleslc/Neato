@@ -173,7 +173,7 @@ def follow_wall(laser):
     neato.set_motors(left=dL, right=dR)
 
 def distances_race(laser, wall_sector):
-    go_right = go_left = 0
+    """go_right = go_left = 0
     wall_far = wall_sector.farthest()
     wall_near = wall_sector.nearest()
     debug("Wall: %s" % str(wall_sector))
@@ -187,7 +187,11 @@ def distances_race(laser, wall_sector):
     front_prox = front_prox_percent if is_zero(front_center) or is_zero(front_center_dir) else front_prox_percent*1.5
     debug("front_center %.2f" % front_center)
     debug("front_center_dir %.2f" % front_center_dir)
-    debug("front_prox %.2f" % front_prox)
+    debug("front_prox %.2f" % front_prox)"""
+    if laser.ray(90).dist < 300:
+        go_right = 100
+    else:
+        go_left = 100
     obstacle = (front_center + front_center_dir) > front_prox
     if obstacle:
         go_left = -(k_front_center*front_center + k_front_center_right*front_center_dir)
@@ -338,7 +342,7 @@ def neato_detection_vote(laser, count=5):
 def predator(laser):
     detected, alfa = neato_detection_vote(laser)
     if detected:
-        info("Neato detected at %s" % laser.sectors.find(alfa).tag.upper())
+        info("Neato detected at sector %s with alfa %i and dist %.2f" % (laser.sectors.find(alfa).tag.upper(),alfa,laser.ray(alfa).dist))
 
         """a_alfa = abs_alfa(alfa)
         if a_alfa > 90 and a_alfa < 270:
@@ -354,7 +358,7 @@ def predator(laser):
 
             neato.set_motors(left=dL, right=dR)"""
         neato.rotate(alfa)
-        neato.move_forwards(500)
+        #neato.move_forwards(500)
     else:
         debug("Not detected")
 

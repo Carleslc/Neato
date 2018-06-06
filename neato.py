@@ -408,8 +408,6 @@ class SecurePose(Movement):
         original_speed = neato.saved_speed
         neato.saved_speed = (1 - self.v)*neato.saved_speed
 
-        #neato.enable_laser(True)
-
         laser = neato.get_laser(commonConfiguration)
 
         laser.summary(empties=True)
@@ -418,26 +416,13 @@ class SecurePose(Movement):
             laser.back_outer_right,laser.back_center_right,laser.back_center,laser.back_center_left,laser.back_outer_left])
         laser_vec2 = np.array([laser.front_outer_left,laser.front_center_left,laser.front_center,laser.front_center_right,laser.front_outer_right,
             laser.back_outer_right,laser.back_center_right,laser.back_center,laser.back_center_left,laser.back_outer_left])
-        """
-        0 = laser.front_outer_left
-        1 = laser.front_center_left
-        2 = laser.front_center
-        3 = laser.front_center_right
-        4 = laser.front_outer_right
 
-        5 = laser.back_outer_right
-        6 = laser.back_center_right
-        7 = laser.back_center
-        8 = laser.back_center_left
-        9 = laser.back_outer_left
-        """
         nearest_val = 500000
         nearest = laser.front_center
         nearest2nd_val = 500000
         nearest2nd = laser.front_center
         for j in range(0,10):
             if laser_vec[j].original_dist != 0 and laser_vec[j].original_dist < nearest_val:
-                #debug("laser_vec[%i]: %i - " % (j,laser_vec[j].original_dist) + laser_vec[j].tag)
                 nearest_val = laser_vec[j].original_dist
                 nearest = laser_vec[j]
         for j in range(0,10):
@@ -450,17 +435,6 @@ class SecurePose(Movement):
 
         debug("Nearest sector: " + nearest.tag)
         debug("Second nearest sector: " + nearest2nd.tag)
-
-        """
-        distances = np.array(map(lambda ray: ray.original_dist, nearest.rays))
-        match_dist = min(distances)
-        matches_indices = np.where(distances == match_dist)[0]
-        match_rays = [nearest.rays[i] for i in matches_indices]
-        if len(match_rays) == 1:
-                alfa1 = match_rays[0]
-        larger_sectors = map(lambda ray: ray.sector.degrees(), match_rays)
-        alfa1 = match_rays[larger_sectors.index(max(larger_sectors))]
-        """
 
         def wanted_ray_alfa(rays, dist_f):
             distances = np.array(map(lambda ray: ray.dist, rays))
@@ -475,14 +449,11 @@ class SecurePose(Movement):
         alfa1 = wanted_ray_alfa(nearest.sector.rays(),min)
         alfa2 = wanted_ray_alfa(nearest2nd.sector.rays(),min)
 
-        #alfa1 = nearest.alfa
-        #alfa2 = nearest2nd.alfa
         debug("alfa1: %i, alfa2 %i" % (alfa1,alfa2))
         if alfa1 < 0:
             alfa1 = alfa1 + 360
         if alfa2 < 0:
             alfa2 = alfa2 + 360
-        #alfa = (alfa1 + alfa2) / 2
         alfa = mean_angle(alfa1,alfa2)
         debug("canviats de signe alfa1: %i, alfa2 %i i alfa mig resultant en degrees: %i" % (alfa1,alfa2,alfa))
 
@@ -491,7 +462,6 @@ class SecurePose(Movement):
         neato.rotate(alfa + 180)
 
         LaserRay.DIST_LIMIT = 100
-        #Laser.OFFSET = 200
 
         iniLW = LaserRay.DIST_LIMIT
         iniRW = LaserRay.DIST_LIMIT
@@ -504,7 +474,6 @@ class SecurePose(Movement):
         k_front_center_left = 1 * MOVING_DIST / 2
         k_front_outer_left = 1 * MOVING_DIST / 16
 
-        #for i in range(1,40):
         while laser.back_center.original_dist() < 0.8:
             laser = neato.get_laser(avoidingConfiguration)
             if laser.back_center.proximity_percent() > 0.95:
@@ -513,7 +482,6 @@ class SecurePose(Movement):
             dR = -iniRW + (k_front_outer_left*laser.back_outer_left.proximity_percent() + k_front_center_left*laser.back_center_left.proximity_percent() + k_front_center*laser.back_center.proximity_percent()/2)
             neato.set_motors(left=dL, right=dR)
 
-        #neato.move_backwards(self.k)
         neato.close()
         neato.saved_speed = original_speed
 
