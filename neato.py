@@ -8,7 +8,7 @@ import serial as serial_port
 from log import *
 from Laser import *
 from async import run
-from utils import mod, sign, is_zero, abs_alfa, medianOfThree
+from utils import *
 from Odometry import Odometry
 from math import sin, cos, atan, pi, sqrt, degrees, radians, atan2
 from sets import Set
@@ -483,7 +483,7 @@ class SecurePose(Movement):
         if alfa2 < 0:
             alfa2 = alfa2 + 360
         #alfa = (alfa1 + alfa2) / 2
-        alfa = degrees(atan2((sin(radians(alfa1))+sin(radians(alfa2)))/2,(cos(radians(alfa1))+cos(radians(alfa2)))/2))
+        alfa = mean_angle(alfa1,alfa2)
         debug("canviats de signe alfa1: %i, alfa2 %i i alfa mig resultant en degrees: %i" % (alfa1,alfa2,alfa))
 
         neato.sleep(2)

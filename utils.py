@@ -1,5 +1,6 @@
 from log import info
 from datetime import datetime
+from math import sin, cos, atan2, degrees, radians
 
 def mod(alfa):
     return alfa % 360 if alfa >= 0 else alfa % -360
@@ -28,3 +29,6 @@ def is_zero(x, limit=0.001):
 
 def medianOfThree(a, b, c):
     return a + b + c - min(a, b, c) - max(a, b, c)
+
+def mean_angle(alfa1, alfa2):
+    return degrees(atan2((sin(radians(alfa1))+sin(radians(alfa2)))/2,(cos(radians(alfa1))+cos(radians(alfa2)))/2))

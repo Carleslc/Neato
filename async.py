@@ -2,7 +2,12 @@ from threading import Event, Thread, Timer
 
 def run(block, delay=0, *args):
     """ Run `block` with `args` after `delay` seconds, non-blocking """
-    t = Timer(delay, lambda: block(*args))
+    def do():
+        try:
+            block(*args)
+        except Exception as ex:
+            pass
+    t = Timer(delay, do)
     t.daemon = True
     t.start()
     return t

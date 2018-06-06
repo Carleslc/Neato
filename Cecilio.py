@@ -12,7 +12,7 @@ def info_laser():
         laser.show(empties=True)
     laser.summary(empties=True)
 
-def info():
+def show_info():
     info_laser()
     neato.odometry.show()
 
@@ -251,47 +251,114 @@ def meeting_distances_config():
     iniLW = LaserRay.DIST_LIMIT
     iniRW = LaserRay.DIST_LIMIT
 
-def prey_predator_config():
-    global MOVING_DIST, MAX_SPEED, speed, k_front_outer_right, k_front_center_right, k_front_center, k_front_center_left, k_front_outer_left
-    LaserRay.DIST_LIMIT = 1500
+def prey_config():
+    global MOVING_DIST, MAX_SPEED, speed, k_front_outer_right, k_front_center_right, k_front_center, k_front_center_left, k_front_outer_left, k_n
+    LaserRay.DIST_LIMIT = 1000
 
     MOVING_DIST = LaserRay.DIST_LIMIT
     MAX_SPEED = 300
     speed = MAX_SPEED
 
     # Avoiding obstacles parameters
-    k_front_outer_right = 1 * MOVING_DIST / 16
-    k_front_center_right = 1 * MOVING_DIST / 2
-    k_front_center = 2 * MOVING_DIST / 3
-    k_front_center_left = 1 * MOVING_DIST / 2
-    k_front_outer_left = 1 * MOVING_DIST / 16
+    k_front_outer_right = 1 * MOVING_DIST / 8
+    k_front_center_right = 1 * MOVING_DIST
+    k_front_center = 4 * MOVING_DIST / 3
+    k_front_center_left = 1 * MOVING_DIST
+    k_front_outer_left = 1 * MOVING_DIST / 8
+
+    k_n = 0.2
+
+def predator_config():
+    global MOVING_DIST, MAX_SPEED, speed, k_front_outer_right, k_front_center_right, k_front_center, k_front_center_left, k_front_outer_left, k_n
+    LaserRay.DIST_LIMIT = 1000
+
+    MOVING_DIST = LaserRay.DIST_LIMIT
+    MAX_SPEED = 300
+    speed = 100
+
+    # Avoiding obstacles parameters
+    k_front_outer_right = 1 * MOVING_DIST / 8
+    k_front_center_right = 1 * MOVING_DIST
+    k_front_center = 4 * MOVING_DIST / 3
+    k_front_center_left = 1 * MOVING_DIST
+    k_front_outer_left = 1 * MOVING_DIST / 8
+
+    k_n = 0.2
 
 def prey(laser):
     #escape from the front (removed ini and interchanged dL and dR)
-    dR = -(k_front_outer_right*laser.front_outer_right.proximity_percent() + k_front_center_right*laser.front_center_right.proximity_percent() + k_front_center*laser.front_center.proximity_percent())
-    dL = -(k_front_outer_left*laser.front_outer_left.proximity_percent() + k_front_center_left*laser.front_center_left.proximity_percent() + k_front_center*laser.front_center.proximity_percent()/2)
-
+    """
+    fdR = -(k_front_outer_right*laser.front_outer_right.proximity_percent() + k_front_center_right*laser.front_center_right.proximity_percent() + k_front_center*laser.front_center.proximity_percent())
+    fdL = -(k_front_outer_left*laser.front_outer_left.proximity_percent() + k_front_center_left*laser.front_center_left.proximity_percent() + k_front_center*laser.front_center.proximity_percent()/2)
+    debug("front dL, dR: %i, %i" % (fdL, fdR))
     #escape from the back (removed ini and interchanged dL and dR)
-    dR = k_front_outer_right*laser.back_outer_right.proximity_percent() + k_front_center_right*laser.back_center_right.proximity_percent() + k_front_center*laser.back_center.proximity_percent()
-    dL = k_front_outer_left*laser.back_outer_left.proximity_percent() + k_front_center_left*laser.back_center_left.proximity_percent() + k_front_center*laser.back_center.proximity_percent()/2
+    bdR = k_front_outer_right*laser.back_outer_right.proximity_percent() + k_front_center_right*laser.back_center_right.proximity_percent() + k_front_center*laser.back_center.proximity_percent()
+    bdL = k_front_outer_left*laser.back_outer_left.proximity_percent() + k_front_center_left*laser.back_center_left.proximity_percent() + k_front_center*laser.back_center.proximity_percent()/2
+    debug("back dL, dR: %i, %i" % (bdL, bdR))
+    """
 
-    neato.set_motors(left=dL, right=dR)
+    front_left = pow(k_front_outer_left,laser.front_outer_left.proximity_percent()+k_n) + pow(k_front_center_left,laser.front_center_left.proximity_percent()+k_n)
+    front_right = pow(k_front_outer_right,laser.front_outer_right.proximity_percent()+k_n) + pow(k_front_center_right,laser.front_center_right.proximity_percent()+k_n)
+    fdR = -(front_left/2 + front_right)
+    fdL = -(front_right/2 + front_left)
+    debug("front dL, dR: %i, %i" % (fdL, fdR))
+
+    back_left = pow(k_front_outer_left,laser.back_outer_left.proximity_percent()+k_n) + pow(k_front_center_left,laser.back_center_left.proximity_percent()+k_n)
+    back_right = pow(k_front_outer_right,laser.back_outer_right.proximity_percent()+k_n) + pow(k_front_center_right,laser.back_center_right.proximity_percent()+k_n)
+    bdR = -max(0, back_right - pow(k_front_center,laser.back_center.proximity_percent()+k_n+0.1))
+    bdL = -max(0, back_left - pow(k_front_center,laser.back_center.proximity_percent()+k_n+0.1)/2)
+    debug("back dL, dR: %i, %i" % (bdL, bdR))
+
+    L = fdL + bdL
+    R = fdR + bdR
+    if not is_zero(abs(L) + abs(R), limit=200):
+        neato.set_motors(left=L, right=R)
+
+def neato_detection_vote(laser, count=5):
+    i = 0
+    votation = dict() # int(alfa/5): ([alfa], count)
+    for i in range(count):
+        detected, alfa = laser.detect_neato()
+        if detected:
+            alfa5 = int(alfa/5)
+            default_alfa = votation[alfa5][0] if alfa5 in votation else list()
+            default_count = votation[alfa5][1] if alfa5 in votation else 0
+            default_alfa.append(alfa)
+            votation[alfa5] = (default_alfa, default_count + 1)
+        if i < count - 1: # not last
+            laser = neato.get_laser(laser_conf)
+    info("Votes: %s" % str(votation))
+    if len(votation) == 0:
+        return False, 0
+    else:
+        votes = max(map(lambda alfaCount: alfaCount[1], votation.values()))
+        voted_alfas = next(alfaCount for alfaCount in votation.values() if alfaCount[1] == votes)[0]
+        voted_alfa = sum(voted_alfas)/len(voted_alfas)
+        return True, voted_alfa
 
 def predator(laser):
-	alfa = laser.detect_neato()
-	rL, rR = neato.rotation_motors(alfa)
+    detected, alfa = neato_detection_vote(laser)
+    if detected:
+        info("Neato detected at %s" % laser.sectors.find(alfa).tag.upper())
+        rL, rR = neato.rotation_motors(alfa)
+        neato.rotate(alfa)
+        a_alfa = abs_alfa(alfa)
+        if a_alfa > 90 and a_alfa < 270:
+            neato.rotate(a_alfa)
 
-	dR = k_front_outer_right*laser.front_outer_right.proximity_percent() + k_front_center_right*laser.front_center_right.proximity_percent() + k_front_center*laser.front_center.proximity_percent()
-    dL = k_front_outer_left*laser.front_outer_left.proximity_percent() + k_front_center_left*laser.front_center_left.proximity_percent() + k_front_center*laser.front_center.proximity_percent()/2
+        dR = 0#k_front_outer_right*laser.front_outer_right.proximity_percent() + k_front_center_right*laser.front_center_right.proximity_percent() + k_front_center*laser.front_center.proximity_percent()
+        dL = 0#k_front_outer_left*laser.front_outer_left.proximity_percent() + k_front_center_left*laser.front_center_left.proximity_percent() + k_front_center*laser.front_center.proximity_percent()/2
 
-    dL = dL + rL
-    dR = dR + rR
+        dL = dL + rL
+        dR = dR + rR
 
-	neato.set_motors(left=dL, right=dR)
+        neato.set_motors(left=dL, right=dR)
+    else:
+        debug("Not detected")
 
 
 def run(config):
-    log_level(DEBUG)
+    log_level(INFO)
 
     global neato, alfaIni, yIni, laser_conf
 
@@ -315,7 +382,7 @@ def run(config):
             f(laser)
         return execute
 
-    #loop(info, interval=5) # display info every 3 seconds (in addition to other calls)
+    #loop(show_info, interval=5) # display info every 3 seconds (in addition to other calls)
 
     laser_conf = config.laser_conf
     if config.ini != None:

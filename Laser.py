@@ -2,8 +2,9 @@
 
 import neato
 import numpy as np
+from utils import *
 from log import info, debug
-from utils import abs_alfa, for_each, print_each, separator
+from math import atan2, degrees
 from collections import OrderedDict as odict
 
 ## DEFAULT SECTOR CONFIGURATIONS ##
@@ -139,13 +140,13 @@ class Laser(object):
         """ Get laser rays matching a condition, leave tag to default to return rays matching the condition from all sectors """
         return list(filter(condition, self.all(tag)))
 
-    def farthest(self, average=True):
+    def farthest(self, average=True, empties=False):
         """ Get the ray with farthest distance, either for average rays or for all rays """
-        return __ray_by_dist(max, self.rays(empties=False) if average else self.all())
+        return _ray_by_dist(max, self.rays(empties=empties) if average else self.filter(lambda ray: empties or ray.is_valid()))
 
     def nearest(self, average=True):
         """ Get the ray with nearest distance, either for average rays or for all rays """
-        return __ray_by_dist(min, self.rays(empties=True) if average else self.all())
+        return _ray_by_dist(min, self.rays(empties=True) if average else self.all())
 
     def summary(self, empties=False):
         """ Print mean rays for every non-empty valid sector, including front and back averages """
@@ -187,6 +188,38 @@ class Laser(object):
         #    debug("Before wall centering %s" % wall_sector.tag)
         #    wall_sector = wall_sector.right if wall_sector < self.find_front_center() else wall_sector.left
         return wall_sector
+
+    def detect_neato(self):
+        rays = self.all()#self.filter(lambda ray: not ray.is_error())
+        debug("\n\nDetect Neato from %i non-error rays" % len(rays))
+        if len(rays) == 0:
+            return False, 0
+        dist_prev = rays[0].dist
+        alfa_obj = 0
+        dist_obj = 0
+        neato_alfa = 0
+        dist_detected = LaserRay.DIST_LIMIT
+        object_started = False
+        alfa_detected = 0
+        for ray in rays:
+            object_finished = object_started and not is_zero(ray.dist - dist_prev, limit=200) # distància amb la distància anterior major o menor que 200
+            if object_finished:
+                object_started = False
+                alfa = ray.alfa - alfa_obj # angle de l'objecte trobat
+                debug("Ray %s" % str(ray))
+                debug("Object finished, gruix %.2f" % alfa)
+                if is_zero(alfa - neato_alfa, limit=10) and (dist_obj < dist_detected): # neato nou
+                    dist_detected = dist_obj
+                    alfa_detected = alfa_obj + neato_alfa/2 #mean_angle(alfa_obj, ray.alfa)
+            dist_prev = ray.dist
+            if not object_started and ray.is_valid(): # raig valid, comença un objecte nou
+                alfa_obj = ray.alfa
+                dist_obj = ray.dist
+                neato_alfa = degrees(atan2(100, ray.original_dist))
+                object_started = True
+                debug("Ray %s" % str(ray))
+                debug("Object started at alfa %.2f\nNeato alfa needed: %.2f" % (alfa_obj, neato_alfa))
+        return dist_detected != LaserRay.DIST_LIMIT, alfa_detected
 
     def __getitem__(self, tag): # makes Laser subscriptable by sector tag
         return getattr(self, tag)
@@ -425,8 +458,6 @@ class LaserSectors(object):
 
 def _mean(laser, laser_rays, validate=LaserRay.is_valid):
     """ LaserRay, average of valid laser_rays """
-    assert len(laser_rays) > 0
-
     alfa = 0
     dist = 0
     intensity = 0
@@ -440,7 +471,7 @@ def _mean(laser, laser_rays, validate=LaserRay.is_valid):
     
     if size == 0:
         size = 1
-        alfa = sum(map(lambda ray: ray.alfa, laser_rays))/len(laser_rays)
+        alfa = sum(map(lambda ray: ray.alfa, laser_rays))/max(1,len(laser_rays))
 
     return LaserRay(laser, [alfa / size, dist / size, intensity / size, 0])
 
