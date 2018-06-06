@@ -270,11 +270,11 @@ def prey_config():
 
 def predator_config():
     global MOVING_DIST, MAX_SPEED, speed, k_front_outer_right, k_front_center_right, k_front_center, k_front_center_left, k_front_outer_left, k_n
-    LaserRay.DIST_LIMIT = 1000
+    LaserRay.DIST_LIMIT = 1500
 
     MOVING_DIST = LaserRay.DIST_LIMIT
-    MAX_SPEED = 300
-    speed = 100
+    MAX_SPEED = 100
+    speed = 300
 
     # Avoiding obstacles parameters
     k_front_outer_right = 1 * MOVING_DIST / 8
@@ -321,18 +321,17 @@ def neato_detection_vote(laser, count=5):
         detected, alfa = laser.detect_neato()
         if detected:
             alfa5 = int(alfa/5)
-            default_alfa = votation[alfa5][0] if alfa5 in votation else list()
-            default_count = votation[alfa5][1] if alfa5 in votation else 0
+            default_alfa = votation[alfa5] if alfa5 in votation else list()
             default_alfa.append(alfa)
-            votation[alfa5] = (default_alfa, default_count + 1)
+            votation[alfa5] = default_alfa
         if i < count - 1: # not last
             laser = neato.get_laser(laser_conf)
     info("Votes: %s" % str(votation))
     if len(votation) == 0:
         return False, 0
     else:
-        votes = max(map(lambda alfaCount: alfaCount[1], votation.values()))
-        voted_alfas = next(alfaCount for alfaCount in votation.values() if alfaCount[1] == votes)[0]
+        votes = max(map(lambda alfas: len(alfas), votation.values()))
+        voted_alfas = next(alfas for alfas in votation.values() if len(alfas) == votes)
         voted_alfa = sum(voted_alfas)/len(voted_alfas)
         return True, voted_alfa
 
@@ -340,22 +339,24 @@ def predator(laser):
     detected, alfa = neato_detection_vote(laser)
     if detected:
         info("Neato detected at %s" % laser.sectors.find(alfa).tag.upper())
-        rL, rR = neato.rotation_motors(alfa)
-        neato.rotate(alfa)
-        a_alfa = abs_alfa(alfa)
+
+        """a_alfa = abs_alfa(alfa)
         if a_alfa > 90 and a_alfa < 270:
             neato.rotate(a_alfa)
+        else:
+            dR = 0#k_front_outer_right*laser.front_outer_right.proximity_percent() + k_front_center_right*laser.front_center_right.proximity_percent() + k_front_center*laser.front_center.proximity_percent()
+            dL = 0#k_front_outer_left*laser.front_outer_left.proximity_percent() + k_front_center_left*laser.front_center_left.proximity_percent() + k_front_center*laser.front_center.proximity_percent()/2
 
-        dR = 0#k_front_outer_right*laser.front_outer_right.proximity_percent() + k_front_center_right*laser.front_center_right.proximity_percent() + k_front_center*laser.front_center.proximity_percent()
-        dL = 0#k_front_outer_left*laser.front_outer_left.proximity_percent() + k_front_center_left*laser.front_center_left.proximity_percent() + k_front_center*laser.front_center.proximity_percent()/2
+            rL, rR = neato.rotation_motors(alfa)
 
-        dL = dL + rL
-        dR = dR + rR
+            dL = dL + rL
+            dR = dR + rR
 
-        neato.set_motors(left=dL, right=dR)
+            neato.set_motors(left=dL, right=dR)"""
+        neato.rotate(alfa)
+        neato.move_forwards(500)
     else:
         debug("Not detected")
-
 
 def run(config):
     log_level(INFO)

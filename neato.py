@@ -504,7 +504,8 @@ class SecurePose(Movement):
         k_front_center_left = 1 * MOVING_DIST / 2
         k_front_outer_left = 1 * MOVING_DIST / 16
 
-        for i in range(1,40):
+        #for i in range(1,40):
+        while laser.back_center.original_dist() < 0.8:
             laser = neato.get_laser(avoidingConfiguration)
             if laser.back_center.proximity_percent() > 0.95:
                 break
