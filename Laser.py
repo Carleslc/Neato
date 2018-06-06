@@ -114,6 +114,11 @@ class Laser(object):
         """ LaserRay array, average of every sector (only valid rays, or empties optionally) """
         return [self[tag] for tag in self.sectors.tags if empties or self[tag].is_valid()]
 
+    def ray(self, alfa):
+        """ LaserRay which angle is alfa """
+        sector = laser.sectors.find(alfa)
+        return sector.rays()[sector.normalize(alfa) - sector.start]
+
     def front_average(self):
         """ LaserRay, average of configuration front sectors, without errors """
         ray = _mean(self, self.sectors.rays_if(LaserSector.is_front))
