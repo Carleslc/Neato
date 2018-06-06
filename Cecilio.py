@@ -251,7 +251,7 @@ def meeting_distances_config():
     iniLW = LaserRay.DIST_LIMIT
     iniRW = LaserRay.DIST_LIMIT
 
-def prey_config():
+def prey_predator_config():
     global MOVING_DIST, MAX_SPEED, speed, k_front_outer_right, k_front_center_right, k_front_center, k_front_center_left, k_front_outer_left
     LaserRay.DIST_LIMIT = 1500
 
@@ -276,6 +276,18 @@ def prey(laser):
     dL = k_front_outer_left*laser.back_outer_left.proximity_percent() + k_front_center_left*laser.back_center_left.proximity_percent() + k_front_center*laser.back_center.proximity_percent()/2
 
     neato.set_motors(left=dL, right=dR)
+
+def predator(laser):
+	alfa = laser.detect_neato()
+	rL, rR = neato.rotation_motors(alfa)
+
+	dR = k_front_outer_right*laser.front_outer_right.proximity_percent() + k_front_center_right*laser.front_center_right.proximity_percent() + k_front_center*laser.front_center.proximity_percent()
+    dL = k_front_outer_left*laser.front_outer_left.proximity_percent() + k_front_center_left*laser.front_center_left.proximity_percent() + k_front_center*laser.front_center.proximity_percent()/2
+
+    dL = dL + rL
+    dR = dR + rR
+
+	neato.set_motors(left=dL, right=dR)
 
 
 def run(config):
