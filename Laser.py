@@ -116,8 +116,10 @@ class Laser(object):
 
     def ray(self, alfa):
         """ LaserRay which angle is alfa """
-        sector = laser.sectors.find(alfa)
-        return sector.rays()[sector.normalize(alfa) - sector.start]
+        sector = self.sectors.find(alfa)
+        i = sector.normalize(int(alfa)) - sector.start
+        info("i = %i" % i)
+        return sector.rays()[i]
 
     def front_average(self):
         """ LaserRay, average of configuration front sectors, without errors """
@@ -203,27 +205,53 @@ class Laser(object):
         alfa_obj = 0
         dist_obj = 0
         neato_alfa = 0
-        dist_detected = LaserRay.DIST_LIMIT
+        min_angle_diff = LaserRay.DIST_LIMIT
         object_started = False
         alfa_detected = 0
+        mean_dist = 0
+        first_distance = 0
         for ray in rays:
-            object_finished = object_started and not is_zero(ray.dist - dist_prev, limit=400) # distància amb la distància anterior major o menor que 200
+            object_finished = object_started and not is_zero(ray.dist - dist_prev, limit=900) # distància amb la distància anterior major o menor que 200
             if object_finished:
                 object_started = False
                 alfa = ray.alfa - alfa_obj # angle de l'objecte trobat
-                debug("Ray %s" % str(ray))
-                debug("Object finished, gruix %.2f" % alfa)
-                if is_zero(alfa - neato_alfa, limit=2) and (dist_obj < dist_detected): # neato nou
-                    dist_detected = dist_obj
-                    alfa_detected = alfa_obj + neato_alfa/2 #mean_angle(alfa_obj, ray.alfa)
-            dist_prev = ray.dist
-            if not object_started and ray.is_valid(): # raig valid, comença un objecte nou
+                dist_array = np.array(dist_array)
+                neato_alfa = degrees(atan2(90, dist_array.mean()))/2
+                neato_std = dist_array.std()
+                angle_diff = abs(alfa - neato_alfa)
+                if alfa > 1 and is_zero(angle_diff, limit=6) and neato_std < 12: # neato nou
+                    if angle_diff < min_angle_diff:
+                        debug("Object started at alfa %.2f\nNeato alfa needed: %.2f" % (alfa_obj, neato_alfa))
+                        debug("Object finished, gruix %.2f" % alfa)
+                        debug("distance delimitating the object %i , %i" % (first_distance,ray.dist - dist_prev))
+                        debug("standard deviation of the object %.2f" % neato_std)
+                        min_angle_diff = angle_diff
+                        alfa_detected = mean_angle(alfa_obj, ray.alfa)
+                        debug("Is this a neato? at %2.f" % alfa_detected)
+                """
+                    else:
+                        debug("angle not closest to calculated")
+                elif not alfa > 1:
+                    debug("alfa <= 1")
+                elif not is_zero(alfa - neato_alfa, limit=6):
+                    debug("angle width incorrect %i" % (alfa - neato_alfa))
+                elif not dist_obj < dist_detected:
+                    debug("not nearest")
+                elif not neato_std < 12:
+                    debug("standard deviation too high %.2f" % neato_std)
+                    debug(dist_array)
+                """
+            elif object_started:
+                dist_array.append(ray.original_dist)
+            if not object_started and ray.is_valid() and not is_zero(ray.dist - dist_prev, limit=900): # raig valid, comença un objecte nou
+                debug("Start object")
+                first_distance = ray.dist - dist_prev
                 alfa_obj = ray.alfa
                 dist_obj = ray.dist
-                neato_alfa = degrees(atan2(100, ray.original_dist))
+                dist_array = list()
+                dist_array.append(ray.original_dist)
                 object_started = True
-                debug("Ray %s" % str(ray))
-                debug("Object started at alfa %.2f\nNeato alfa needed: %.2f" % (alfa_obj, neato_alfa))
+            dist_prev = ray.dist
         return dist_detected != LaserRay.DIST_LIMIT, alfa_detected
 
     def __getitem__(self, tag): # makes Laser subscriptable by sector tag

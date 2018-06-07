@@ -129,6 +129,14 @@ class NeatoMock(object):
         self.show_odometry()
         return rotate
 
+    def predator_rotate(self, alfa, optimize=True, limit=0.001):
+        L, R = self.rotation_motors(alfa, optimize, limit)
+        rotate = abs(L) > 0 and abs(R) > 0
+        if rotate:
+            self.set_motors(L, R)
+            self.sleep(abs(L)/300)
+        return rotate
+
     def rotate_left(self, alfa, optimize=True, limit=0.001):
         return self.rotate(alfa, optimize, limit)
 
