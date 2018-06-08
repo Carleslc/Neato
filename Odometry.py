@@ -7,12 +7,12 @@ from math import pi, cos, sin, degrees
 
 class Odometry(object):
 
-    def __init__(self, delta_d=0, delta_th=0, theta_dot=0.0, x_ini=0, y_ini=0, speed=0, L_ini=0, R_ini=0, noise_d=0.0001, noise_th=0.000001):
+    def __init__(self, delta_d=0, delta_th=0, theta_dot=0.0, suma_theta=0, x_ini=0, y_ini=0, speed=0, L_ini=0, R_ini=0, noise_d=0.0001, noise_th=0.000001):
         self.step = 'START'
         self.delta_d = delta_d
         self.delta_th = delta_th
         self.theta_dot = theta_dot
-        self.suma_theta = delta_th
+        self.suma_theta = suma_theta
         self.speed = speed
         self.x = x_ini
         self.y = y_ini
@@ -80,14 +80,14 @@ class Odometry(object):
         s = s + header
         s = s + "\n(x, y) = (%i, %i)" % (self.x, self.y)
         #s = s + "\n(L, R) = (%i, %i)" % (self.L, self.R)
-        #s = s + "\nSpeed = %i" % self.speed
+        s = s + "\nSpeed = %i" % self.speed
         s = s + "\nSuma Theta = %.2f" % degrees(self.suma_theta)
-        #s = s + "\nTheta Dot = %.2f" % degrees(self.theta_dot)
-        #s = s + "\nDelta D = %.2f" % self.delta_d
-        #s = s + "\nDelta Theta = %.2f" % degrees(self.delta_th)
-        #s = s + "\nNoise Area\n%s" % self.Pk1
-        #x_est, y_est, delta_th_est = self.estimation_pose()
-        #s = s + "\n(x, y) estimated = (%i, %i)" % (x_est, y_est)
-        #s = s + "\nDelta Theta estimated = %.2f\n" % degrees(delta_th_est)
+        s = s + "\nTheta Dot = %.2f" % degrees(self.theta_dot)
+        s = s + "\nDelta D = %.2f" % self.delta_d
+        s = s + "\nDelta Theta = %.2f" % degrees(self.delta_th)
+        s = s + "\nNoise Area\n%s" % self.Pk1
+        x_est, y_est, delta_th_est = self.estimation_pose()
+        s = s + "\n(x, y) estimated = (%i, %i)" % (x_est, y_est)
+        s = s + "\nDelta Theta estimated = %.2f\n" % degrees(delta_th_est)
         s = s + '\n' + '#' * len(header)
         return s

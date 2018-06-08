@@ -10,7 +10,6 @@ tiempo = 20
 FORWARDS = 0
 BACKWARDS = 1
 
-go_to_charge = SecurePose(x=0, y=0, alfa=0, k=500)
 go_to_zero = Pose(x=0, y=0, alfa=0)
 
 direccion = FORWARDS
@@ -81,9 +80,10 @@ def move_with_key(tecla):
     info('\n')
 
 if __name__ == "__main__":
-    global neato
+    global neato, go_to_charge
+    go_to_charge = SecurePose(x=int(sys.argv[4]), y=int(sys.argv[5]), alfa=int(sys.argv[6]), k=500)
     log_level(DEBUG)
-    neato = Neato(speed=150, laser=True, viewer=True)
+    neato = Neato(speed=150, laser=True, viewer=True, x_ini=int(sys.argv[1]), y_ini=int(sys.argv[2]), suma_theta=radians(int(sys.argv[3])))
     neato.sleep(3)
     #neato.move(Manhattan(charging_station_x, charging_station_y), EuclideToPosition(0, 0))
     neato.run_until_key('q', move_with_key)

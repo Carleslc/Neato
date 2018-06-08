@@ -65,19 +65,19 @@ def avoidingConfiguration():
 
 def followWallConfiguration():
     """
-    front: 59º 30º 2º 30º 59º
-    back: 59º 30º 2º 30º 59º
+    front: 59º 26º 10º 26º 59º
+    back: 59º 26º 10º 26º 59º
     """
     return LaserSectors(
             LaserSector('front_outer_right', -90, -90 + 59, front=True, right=True),
-            LaserSector('front_center_right', -31, -31 + 30, front=True, right=True),
-            LaserSector('front_center', -1, -1 + 2, front=True),
-            LaserSector('front_center_left', 1, 1 + 30, front=True, left=True),
+            LaserSector('front_center_right', -31, -31 + 26, front=True, right=True),
+            LaserSector('front_center', -5, -5 + 10, front=True),
+            LaserSector('front_center_left', 5, 5 + 26, front=True, left=True),
             LaserSector('front_outer_left', 31, 31 + 59, front=True, left=True),
             LaserSector('back_outer_left', 90, 90 + 59, back=True, left=True),
-            LaserSector('back_center_left', 149, 149 + 30, back=True, left=True),
-            LaserSector('back_center', 179, 179 + 2, back=True),
-            LaserSector('back_center_right', 181, 181 + 30, back=True, right=True),
+            LaserSector('back_center_left', 149, 149 + 26, back=True, left=True),
+            LaserSector('back_center', 175, 175 + 10, back=True),
+            LaserSector('back_center_right', 185, 185 + 26, back=True, right=True),
             LaserSector('back_outer_right', 211, 211 + 59, back=True, right=True))
 
 def findWallConfiguration():
@@ -504,6 +504,7 @@ def _mean(laser, laser_rays, validate=LaserRay.is_valid):
     
     if size == 0:
         size = 1
+        #dist = LaserRay.DIST_LIMIT
         alfa = sum(map(lambda ray: ray.alfa, laser_rays))/max(1,len(laser_rays))
 
     return LaserRay(laser, [alfa / size, dist / size, intensity / size, 0])

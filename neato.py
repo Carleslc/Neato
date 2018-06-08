@@ -26,8 +26,8 @@ class NeatoMock(object):
     when you does not have connection to the Neato robot
     """
 
-    def __init__(self, laser=False, viewer=False, speed=100, delta_d=0, delta_th=0, theta_dot=0.0, x_ini=0, y_ini=0, noise_d=0.0001, noise_th=0.000001):
-        _Neato_init(self, serial=False, viewer=viewer, default_speed=speed, laser=laser, odometry=Odometry(delta_d=delta_d, delta_th=delta_th, theta_dot=theta_dot, x_ini=x_ini, y_ini=y_ini, noise_d=noise_d, noise_th=noise_th))
+    def __init__(self, laser=False, viewer=False, speed=100, delta_d=0, delta_th=0, theta_dot=0.0, suma_theta=0, x_ini=0, y_ini=0, noise_d=0.0001, noise_th=0.000001):
+        _Neato_init(self, serial=False, viewer=viewer, default_speed=speed, laser=laser, odometry=Odometry(delta_d=delta_d, delta_th=delta_th, theta_dot=theta_dot, suma_theta=suma_theta, x_ini=x_ini, y_ini=y_ini, noise_d=noise_d, noise_th=noise_th))
 
     def is_mocked(self):
         return True
@@ -281,8 +281,8 @@ class Neato(NeatoMock):
 
     S = 121.5; # millimeters
 
-    def __init__(self, laser=False, viewer=False, speed=100, delta_d=0, delta_th=0, theta_dot=0.0, x_ini=0, y_ini=0, noise_d=0.0001, noise_th=0.000001):
-        _Neato_init(self, serial=True, viewer=viewer, default_speed=speed, laser=laser, odometry=Odometry(delta_d=delta_d, delta_th=delta_th, theta_dot=theta_dot, x_ini=x_ini, y_ini=y_ini, noise_d=noise_d, noise_th=noise_th))
+    def __init__(self, laser=False, viewer=False, speed=100, delta_d=0, delta_th=0, theta_dot=0.0, suma_theta=0, x_ini=0, y_ini=0, noise_d=0.0001, noise_th=0.000001):
+        _Neato_init(self, serial=True, viewer=viewer, default_speed=speed, laser=laser, odometry=Odometry(delta_d=delta_d, delta_th=delta_th, theta_dot=theta_dot, suma_theta=suma_theta, x_ini=x_ini, y_ini=y_ini, noise_d=noise_d, noise_th=noise_th))
     
     def send(self, message, delay=0.1):
         return _envia(self.ser, message, delay, sleep=self.sleep)
@@ -482,10 +482,8 @@ class SecurePose(Movement):
         k_front_center_left = 1 * MOVING_DIST / 2
         k_front_outer_left = 1 * MOVING_DIST / 16
 
-        while laser.back_center.original_dist() < 0.8:
+        while laser.back_center.proximity_percent() < 0.8:
             laser = neato.get_laser(avoidingConfiguration)
-            if laser.back_center.proximity_percent() > 0.95:
-                break
             dL = -iniLW + (k_front_outer_right*laser.back_outer_right.proximity_percent() + k_front_center_right*laser.back_center_right.proximity_percent() + k_front_center*laser.back_center.proximity_percent())
             dR = -iniRW + (k_front_outer_left*laser.back_outer_left.proximity_percent() + k_front_center_left*laser.back_center_left.proximity_percent() + k_front_center*laser.back_center.proximity_percent()/2)
             neato.set_motors(left=dL, right=dR)
@@ -521,7 +519,7 @@ def _Neato_init(neato, default_speed=100, odometry=None, laser=False, viewer=Fal
     neato.enabled_laser = False
     neato.enable_laser(laser)
     if viewer:
-        neato.viewer_start(int(sys.argv[1]))
+        neato.viewer_start(int(sys.argv[7]))
     neato.sleep(0.5)
 
 def _Neato_close(neato):

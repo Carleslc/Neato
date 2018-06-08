@@ -59,10 +59,10 @@ def avoid_obstacles_with_original_direction(laser): # 1,5 punts esquivar objecte
     neato.update_odometry()
 
 def follow_wall_config():
-    global findWallLimit, follow_wall_direction, wall_dist_limit, wall_dist_limit_min, k_front_outer_right, k_front_center_right, k_front_center, k_front_center_left, k_front_outer_left, front_prox_percent, calibration, iniLW, iniRW
+    global findWallLimit, follow_wall_direction, wall_dist_limit, wall_dist_limit_min, k_front_outer_right, k_front_center_right, k_front_center, k_front_center_left, k_front_outer_left, front_prox_percent, calibration, iniLW, iniRW, speed
     avoid_obstacles_config()
-    follow_wall_direction = 1 # 1: LEFT, -1: RIGHT
-    wall_dist_limit_min = 100
+    follow_wall_direction = -1 # 1: LEFT, -1: RIGHT
+    wall_dist_limit_min = 150
     wall_dist_limit = 500
     front_prox_percent = 0.7
     calibration = 600
@@ -71,6 +71,7 @@ def follow_wall_config():
     iniLW = 600
     iniRW = 600
     MOVING_DIST = 450
+    speed = 150
     k_front_outer_right = 1 * MOVING_DIST / 16
     k_front_center_right = 1 * MOVING_DIST / 16
     k_front_center = 7 * MOVING_DIST / 10
@@ -124,13 +125,20 @@ def find_wall():
     debug("Wall Alfa: %.2f" % wall.alfa)
 
 def distances_follow_wall(laser, wall):
-    if laser.front_center.dist < 150:
-        neato.rotate(follow_wall_direction*90)
+    go_left = 0
+    res = 300
+    if laser.front_center.dist < 100:
+        neato.rotate(-follow_wall_direction*90)
         return 0, 0
     else:
-        go_left = -follow_wall_direction*(1/(wall.proximity_percent() - 0.5)*20)
-        rL, rR = neato.rotation_motors(wall.alfa - follow_wall_direction*90)
-        return rL, rR + go_left
+        if wall.dist < 75:
+            go_left = -follow_wall_direction*40
+        elif wall.dist > 100:
+            go_left = follow_wall_direction*150
+        #go_left = -follow_wall_direction*(1/(wall.proximity_percent() - 0.2)*80) # -1 * (1/1 - 0.1) * 80
+        rL, rR = neato.rotation_motors(wall.sector.nearest().alfa - follow_wall_direction*90)
+        debug("go_left, rL, rR, proximity: %.2f, %.2f, %.2f, %.2f" % (go_left, rL, rR, wall.proximity_percent()))
+        return 1.5*rL + res, 1.5*rR + go_left + res
 
     """
     go_right = go_left = 0
@@ -179,58 +187,46 @@ def follow_wall(laser):
     dL, dR = distances_follow_wall(laser, scan_wall_ray_direction())
     neato.set_motors(left=dL, right=dR)
 
-def distances_race(laser, wall_sector):
+def distances_race(laser, wall_sector, inner=False):
     global corner, innercorner
     go_right = go_left = 0
     left = laser.front_center_left
     debug("Left: %s" % str(left))
     debug("Distance to wall: %i" % left.dist)
-    if not corner and left.proximity_percent() < 0.5:
+    detected_wall = left.dist <= 550
+    if not corner and not detected_wall:
         corner = True
         debug("adjusting direction")
-        #go_right = -iniLW/2.0 + iniLW/2.0*left.proximity_percent()*4
-        #go_left = go_left + max(0, left.dist - calibration)
+        if left.dist == 0:
+            neato.set_motors(left=50,right=50)
+            neato.sleep(50/250)
         go_right, go_left = neato.rotation_motors(90)
-        dL = 50 + go_right#abs(go_right)
-        dR = 50 + go_left#go_left*2
-        #neato.set_motors(left=dL,right=dR)
-    elif left.proximity_percent() >= 0.5:
+        dL = 250 + go_right
+        dR = 250 + go_left
+    else:
         corner = False
         debug("go straight and avoiding obstacles")
-        if not innercorner and laser.front_center.proximity_percent() > 0.8:
+        if inner and not innercorner and laser.front_center.proximity_percent() > 0.7:
+            debug("innercorner")
             innercorner = True
             go_right, go_left = neato.rotation_motors(-90)
-            dL = 50 + go_right
-            dR = 50 + go_left
+            dL = 150 + go_right
+            dR = 150 + go_left
         else:
+            alfa = left.sector.nearest().alfa
+            debug("straight %i " % alfa)
             innercorner = False
-            dL, dR = neato.rotation_motors(left.nearest().alfa + 90)
-            dL = dL + 500
-            dR = dR + 500
-
-    
-        #debug("quant intenta rotar (rL, rR): (%i, %i)" % (go_right, go_left))
-        #go_left = go_left + max(0, left.dist - calibration)
-        #debug("Farthest distance to wall: %i" % left.dist)
-        """
-        front_center = laser.front_center.proximity_percent()
-        front_center_dir = laser.front_center_left.proximity_percent()
-        front_prox = front_prox_percent if is_zero(front_center) or is_zero(front_center_dir) else front_prox_percent*1.5
-        debug("front_center %.2f" % front_center)
-        debug("front_center_dir %.2f" % front_center_dir)
-        debug("front_prox %.2f" % front_prox)
-        obstacle = (front_center + front_center_dir) > front_prox
-        if obstacle:
-            go_left = -(k_front_center*front_center + k_front_center_right*front_center_dir)
-            debug("AVOID OBSTACLE")
-        """
-        #debug("go_left, go_right: %i, %i" % (go_left, go_right))
-        #dL = iniLW + go_right
-        #dR = iniRW + go_left
+            dL, dR = neato.rotation_motors(alfa - 54)
+            dL = dL + 400
+            dR = dR + 400
     return dL, dR
 
 def race(laser):
     dL, dR = distances_race(laser, scan_wall_race_direction())
+    neato.set_motors(left=dL, right=dR, speed=speed)
+
+def race_inner(laser):
+    dL, dR = distances_race(laser, scan_wall_race_direction(), inner=True)
     neato.set_motors(left=dL, right=dR, speed=speed)
 
 def meet_object(laser):
